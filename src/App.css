@@ -1,0 +1,211 @@
+/* Import Google Font for readable typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+/* Global CSS Variables for the travel-tech design system */
+:root {
+  --deep-slate-blue: #2A3B4C; 
+  --vibrant-emerald: #10B981; 
+  --background-light: #F8FAFC;
+  --text-dark: #1E293B;
+  --text-light: #F1F5F9;
+  --card-bg: #FFFFFF;
+}
+
+/* Reset margins and set the universal font */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+body {
+  background-color: var(--background-light);
+  color: var(--text-dark);
+}
+
+/* Main wrapper to hold the entire app layout */
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Top navigation bar */
+.app-header {
+  background-color: var(--deep-slate-blue);
+  color: var(--text-light);
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.user-profile {
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+}
+
+/* Flex container for the sidebar and map */
+.main-content {
+  display: flex;
+  flex: 1;
+  padding: 2rem;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+/* Sidebar styling for user inputs and trip planning */
+.sidebar {
+  flex: 1;
+  min-width: 320px;
+  max-width: 400px;
+  background-color: var(--card-bg);
+  padding: 1.75rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.control-group {
+  margin-bottom: 1.5rem;
+}
+
+.control-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--deep-slate-blue);
+}
+
+/* Dropdown menu styling */
+.control-group select {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #CBD5E1;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.control-group select:focus {
+  border-color: var(--vibrant-emerald);
+}
+
+/* Styling for the category chips */
+.categories-container {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.category-chip {
+  background-color: #E2E8F0;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.category-chip:hover {
+  background-color: #CBD5E1;
+}
+
+.category-chip.active {
+  background-color: var(--deep-slate-blue);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* List of generated places */
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.place-item {
+  padding: 0.75rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Primary call to action button */
+.action-button {
+  background-color: var(--vibrant-emerald);
+  color: white;
+  border: none;
+  padding: 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  margin-top: auto;
+}
+
+.action-button:hover {
+  background-color: #059669;
+}
+
+.action-button:active {
+  transform: translateY(2px);
+}
+
+/* Dynamic map container wrapper */
+.map-container-wrapper {
+  flex: 2;
+  min-width: 400px;
+  min-height: 600px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  position: relative;
+  border: 4px solid var(--card-bg);
+}
+
+/* Card displaying the final fare estimation */
+.fare-estimate-card {
+  margin-top: 1.5rem;
+  background-color: var(--deep-slate-blue);
+  color: var(--text-light);
+  padding: 1.5rem;
+  border-radius: 8px;
+  animation: fadeIn 0.5s ease;
+}
+
+.fare-estimate-card h3 {
+  margin-bottom: 1rem;
+  color: var(--vibrant-emerald);
+}
+
+.fare-estimate-card p {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
