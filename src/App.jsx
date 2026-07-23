@@ -1,210 +1,290 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import './App.css';
 
-// Styling configuration for the Google Map container so it fits perfectly in our UI layout
+// Load the Google Places library
+const libraries = ['places', 'geometry'];
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%',
-  minHeight: '600px'
 };
 
 function App() {
-  // Database of major cities in Nepal connected by road networks
+  // Destination Hubs
   const cities = {
     Kathmandu: { lat: 27.7172, lng: 85.3240 },
     Pokhara: { lat: 28.2096, lng: 83.9856 },
     Chitwan: { lat: 27.5291, lng: 84.3542 },
-    Lumbini: { lat: 27.4777, lng: 83.2769 },
-    Biratnagar: { lat: 26.4525, lng: 87.2718 },
-    Dharan: { lat: 26.8065, lng: 87.2846 },
-    Butwal: { lat: 27.7006, lng: 83.4484 },
-    Nepalgunj: { lat: 28.0500, lng: 81.6167 },
-    Janakpur: { lat: 26.7288, lng: 85.9259 }
+    Lumbini: { lat: 27.4777, lng: 83.2769 }
   };
 
-  // Curated, filterable categories for the digital concierge
-  const categories = ['All', 'Lodging', 'Adventure', 'Nightlife'];
+  const categories = [
+    { id: 'lodging', label: '🏨 Stays & Hotels', type: 'lodging', keyword: '' },
+    { id: 'ev', label: '⚡ EV Charging Stops', type: 'electric_vehicle_station', keyword: 'electric vehicle charging' },
+    { id: 'gas', label: '⛽ Gas Stations', type: 'gas_station', keyword: '' },
+    { id: 'hospital', label: '🏥 Hospitals & Medical', type: 'hospital', keyword: '' },
+    { id: 'pharmacy', label: '💊 Pharmacies', type: 'pharmacy', keyword: '' },
+    { id: 'atm', label: '🏧 ATMs & Banks', type: 'atm', keyword: '' },
+    { id: 'supermarket', label: '🛒 Supermarkets', type: 'supermarket', keyword: '' },
+    { id: 'cafe', label: '☕ Cafes & Bakeries', type: 'cafe', keyword: '' },
+    { id: 'restaurant', label: '🍽️ Fine Dining', type: 'restaurant', keyword: '' },
+    { id: 'park', label: '🌳 Parks & Nature', type: 'park', keyword: '' },
+    { id: 'museum', label: '🏛️ Cultural Museums', type: 'museum', keyword: '' },
+    { id: 'tourist', label: '📸 Landmarks', type: 'tourist_attraction', keyword: '' }
+  ];
 
-  // State management for UI interactions
-  const [selectedCity, setSelectedCity] = useState('');
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [routeDetails, setRouteDetails] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState(cities.Kathmandu); // Default to Kathmandu coordinates
+  const [selectedCity, setSelectedCity] = useState('Kathmandu');
+  const [activeCategory, setActiveCategory] = useState(categories[0]);
   
-  // State to handle clicking on map markers to show InfoWindows
+  const [mapInstance, setMapInstance] = useState(null);
+  const [places, setPlaces] = useState([]);
   const [activeMarker, setActiveMarker] = useState(null);
+  const [mapCenter, setMapCenter] = useState(cities.Kathmandu);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Mock points of interest based on the selected city
-  const getPointsOfInterest = (city) => {
-    if (!city) return [];
-    const baseLat = cities[city].lat;
-    const baseLng = cities[city].lng;
-    
-    // Generating mockup places clustered around the selected city center
-    return [
-      { id: 1, name: 'Rainbow Guest House', type: 'Lodging', lat: baseLat + 0.01, lng: baseLng - 0.01 },
-      { id: 2, name: 'Sunflower Boutique Hotel', type: 'Lodging', lat: baseLat - 0.005, lng: baseLng + 0.015 },
-      { id: 3, name: '9km Lakeside Morning Run', type: 'Adventure', lat: baseLat + 0.02, lng: baseLng + 0.005 },
-      { id: 4, name: 'Bungee Jump Platform', type: 'Adventure', lat: baseLat - 0.015, lng: baseLng - 0.02 },
-      { id: 5, name: 'Neon Bamboo Lounge', type: 'Nightlife', lat: baseLat + 0.005, lng: baseLng + 0.005 },
-    ];
-  };
+  // User Live/Shared Location State
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('Share My Location');
 
-  // Filter the available places based on the category the user clicked
-  const currentPlaces = getPointsOfInterest(selectedCity).filter(
-    place => activeCategory === 'All' || place.type === activeCategory
-  );
+  const onLoad = useCallback(function callback(map) {
+    setMapInstance(map);
+  }, []);
 
-  // Update map coordinates when user chooses a new city from the dropdown
-  const handleCityChange = (e) => {
-    const city = e.target.value;
-    setSelectedCity(city);
-    setRouteDetails(null); 
-    setActiveMarker(null); // Close any open info windows
-    if (city) {
-      setMapCenter(cities[city]);
-    }
-  };
-
-  // Trigger the programmatic module to calculate budget optimized routes
-  const calculateBudgetRoute = () => {
-    if (!selectedCity) {
-      alert('Please select a destination city to begin.');
+  // Handler to get user's current GPS location via Geolocation API
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
       return;
     }
 
-    setIsLoading(true);
+    setLocationStatus('Locating...');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const pos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setUserLocation(pos);
+        setMapCenter(pos);
+        setLocationStatus('Location Shared ✓');
+        if (mapInstance) {
+          mapInstance.panTo(pos);
+          mapInstance.setZoom(15);
+        }
+      },
+      () => {
+        setLocationStatus('Permission Denied');
+        alert('Unable to retrieve your location.');
+      }
+    );
+  };
 
-    // Simulating API processing time for the pathfinding math
-    setTimeout(() => {
-      // Localized base-plus-distance algorithm
-      const baseFare = 50; // Base flag-drop rate in NPR
-      const costPerKm = 65; // Rate per kilometer
-      
-      const mockDistanceKm = (currentPlaces.length * 2.3).toFixed(1); 
-      const totalCost = baseFare + (mockDistanceKm * costPerKm);
+  // Helper function to calculate distance in kilometers using Google Maps geometry library
+  const calculateDistance = (destLocation) => {
+    if (!userLocation || !window.google || !window.google.maps.geometry) return null;
+    const from = new window.google.maps.LatLng(userLocation.lat, userLocation.lng);
+    const to = new window.google.maps.LatLng(destLocation.lat, destLocation.lng);
+    const distanceMeters = window.google.maps.geometry.spherical.computeDistanceBetween(from, to);
+    return (distanceMeters / 1000).toFixed(1); // Return distance in km rounded to 1 decimal place
+  };
 
-      setRouteDetails({
-        distance: `${mockDistanceKm} km`,
-        time: `${Math.round(mockDistanceKm * 4)} minutes`,
-        waypoints: currentPlaces.length,
-        cost: `Rs. ${Math.round(totalCost)}`
-      });
-      
-      setIsLoading(false);
-    }, 1200);
+  // Fire the Google Places API Request
+  const handleSearch = () => {
+    if (!mapInstance || !window.google) return;
+    
+    setIsSearching(true);
+    setHasSearched(true);
+    setPlaces([]); 
+    setActiveMarker(null);
+    
+    // If user shared location, search around user location, otherwise search around selected city center
+    const searchCenter = userLocation || cities[selectedCity];
+    setMapCenter(searchCenter);
+
+    const service = new window.google.maps.places.PlacesService(mapInstance);
+    
+    const request = {
+      location: searchCenter,
+      radius: '5000', 
+      type: [activeCategory.type],
+      keyword: activeCategory.keyword
+    };
+
+    service.nearbySearch(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+        const cleanResults = results.filter(p => p.name && (p.vicinity || p.formatted_address));
+        setPlaces(cleanResults);
+      }
+      setIsSearching(false);
+    });
   };
 
   return (
     <div className="dashboard-container">
-      {/* Header for the Journey Navigation System */}
+      {/* Glassmorphic Header */}
       <header className="app-header">
-        <h1>Journey Navigation System</h1>
-        <div className="user-profile">Travelers: Narith</div>
+        <h1>JourneyNavi</h1>
+        <div className="user-profile">Travelers</div>
       </header>
 
       <main className="main-content">
+        {/* Floating Sidebar */}
         <aside className="sidebar">
-          <h2>Plan Your Itinerary</h2>
+          <h2>Discover Places</h2>
           
-          {/* Destination Selection Dropdown */}
-          <div className="control-group" style={{ marginTop: '1.5rem' }}>
-            <label>Select Destination City</label>
-            <select value={selectedCity} onChange={handleCityChange}>
-              <option value="">-- Choose a Hub --</option>
+          <div className="control-group">
+            <label>1. Share Current Location</label>
+            <button className="location-btn" onClick={handleShareLocation}>
+              📍 {locationStatus}
+            </button>
+          </div>
+
+          <div className="control-group">
+            <label>2. Select Destination Hub</label>
+            <select 
+              value={selectedCity} 
+              onChange={(e) => {
+                setSelectedCity(e.target.value);
+                setHasSearched(false);
+                setPlaces([]);
+                if (!userLocation) {
+                  setMapCenter(cities[e.target.value]);
+                }
+              }}
+            >
               {Object.keys(cities).map(city => (
                 <option key={city} value={city}>{city}</option>
               ))}
             </select>
           </div>
 
-          {/* Interactive filter chips for points of interest */}
           <div className="control-group">
-            <label>Points of Interest</label>
+            <label>3. Explore Categories</label>
             <div className="categories-container">
               {categories.map((cat) => (
                 <div 
-                  key={cat} 
-                  className={`category-chip ${activeCategory === cat ? 'active' : ''}`}
-                  onClick={() => setActiveCategory(cat)}
+                  key={cat.id} 
+                  className={`category-chip ${activeCategory.id === cat.id ? 'active' : ''}`}
+                  onClick={() => {
+                    setActiveCategory(cat);
+                    setHasSearched(false);
+                  }}
                 >
-                  {cat}
+                  {cat.label}
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Display list of localized entertainment and lodging options */}
-          {selectedCity && (
+          {/* Results List */}
+          {hasSearched && (
             <div className="places-list">
-              <label style={{ fontWeight: 600, color: 'var(--deep-slate-blue)' }}>Available Stops:</label>
-              {currentPlaces.map(place => (
-                <div key={place.id} className="place-item">
-                  <span>{place.name}</span>
-                  <span style={{ fontSize: '0.8rem', color: '#64748B' }}>{place.type}</span>
+              {places.length === 0 && !isSearching && (
+                <div className="no-results">
+                  No matches found nearby for {activeCategory.label}. Try a different category!
                 </div>
-              ))}
-              {currentPlaces.length === 0 && <p style={{fontSize: '0.9rem'}}>No places found for this category.</p>}
+              )}
+              
+              {places.map((place) => {
+                const dist = calculateDistance(place.geometry.location);
+                return (
+                  <div 
+                    key={place.place_id} 
+                    className="place-item"
+                    onClick={() => {
+                      setMapCenter(place.geometry.location);
+                      setActiveMarker(place);
+                    }}
+                  >
+                    <div className="place-name">{place.name}</div>
+                    <div className="place-details">{place.vicinity || place.formatted_address}</div>
+                    <div>
+                      {dist && <span className="distance-badge">📍 {dist} km away</span>}
+                      {place.rating && (
+                        <span className="status-badge">★ {place.rating} ({place.user_ratings_total || 0})</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          {/* Action button to execute the budget routing engine */}
           <button 
             className="action-button" 
-            onClick={calculateBudgetRoute}
-            disabled={isLoading || !selectedCity || currentPlaces.length === 0}
+            onClick={handleSearch}
+            disabled={isSearching}
           >
-            {isLoading ? 'Processing Route Data...' : 'Generate Cost-Optimized Route'}
+            {isSearching ? 'Scanning Area...' : `Find ${activeCategory.label.split(' ').slice(1).join(' ')}`}
           </button>
-
-          {/* Output card for transit estimates */}
-          {routeDetails && (
-            <div className="fare-estimate-card">
-              <h3>Trip Logistics</h3>
-              <p><strong>Total Distance:</strong> {routeDetails.distance}</p>
-              <p><strong>Estimated Travel Time:</strong> {routeDetails.time}</p>
-              <p><strong>Integrated Waypoints:</strong> {routeDetails.waypoints} Stops</p>
-              <hr style={{ margin: '15px 0', borderColor: '#475569', opacity: 0.5 }} />
-              <p style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-                Estimated Transit Fare: {routeDetails.cost}
-              </p>
-              <p style={{ fontSize: '0.75rem', marginTop: '5px', opacity: 0.8 }}>
-                *Calculated using localized base-plus-distance algorithm
-              </p>
-            </div>
-          )}
         </aside>
 
-        {/* Real-time geospatial Google Map wrapper */}
+        {/* Elevated Map Container */}
         <section className="map-container-wrapper">
-          {/* This wrapper loads the Google Maps script using your .env API Key via Vite */}
-          <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+          <LoadScript 
+            googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+            libraries={libraries}
+          >
             <GoogleMap
               mapContainerStyle={mapContainerStyle}
               center={mapCenter}
-              zoom={13}
+              zoom={14}
+              onLoad={onLoad}
+              options={{
+                disableDefaultUI: true, 
+                zoomControl: true,
+              }}
             >
-              {/* Loop through places and drop a Google Marker for each one */}
-              {currentPlaces.map(place => (
+              {/* User Live Location Marker */}
+              {userLocation && (
                 <Marker 
-                  key={place.id} 
-                  position={{ lat: place.lat, lng: place.lng }}
+                  position={userLocation}
+                  icon={{
+                    path: window.google?.maps?.SymbolPath?.CIRCLE,
+                    scale: 8,
+                    fillColor: '#4f46e5',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2,
+                  }}
+                  title="Your Current Location"
+                />
+              )}
+
+              {/* Destination POI Markers */}
+              {places.map(place => (
+                <Marker 
+                  key={place.place_id}
+                  position={place.geometry.location}
                   onClick={() => setActiveMarker(place)}
+                  animation={window.google.maps.Animation.DROP}
                 />
               ))}
 
-              {/* If a user clicks a marker, open the InfoWindow bubble */}
               {activeMarker && (
                 <InfoWindow
-                  position={{ lat: activeMarker.lat, lng: activeMarker.lng }}
+                  position={activeMarker.geometry.location}
                   onCloseClick={() => setActiveMarker(null)}
                 >
-                  <div>
-                    <strong style={{ color: '#1E293B' }}>{activeMarker.name}</strong>
-                    <br />
-                    <span style={{ color: '#64748B', fontSize: '0.85rem' }}>{activeMarker.type}</span>
+                  <div style={{ padding: '8px', maxWidth: '220px', fontFamily: 'Plus Jakarta Sans' }}>
+                    <strong style={{ color: '#0f172a', display: 'block', marginBottom: '6px', fontSize: '1rem' }}>
+                      {activeMarker.name}
+                    </strong>
+                    <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'block', marginBottom: '6px' }}>
+                      {activeMarker.vicinity || activeMarker.formatted_address}
+                    </span>
+                    {userLocation && (
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#4f46e5', display: 'block', marginBottom: '4px' }}>
+                        🚗 {calculateDistance(activeMarker.geometry.location)} km from your location
+                      </span>
+                    )}
+                    {activeMarker.rating && (
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#10b981' }}>
+                        ★ {activeMarker.rating} / 5.0
+                      </span>
+                    )}
                   </div>
                 </InfoWindow>
               )}
