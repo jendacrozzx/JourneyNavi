@@ -24,8 +24,8 @@
 }
 
 html, body, #root {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background-color: var(--bg-color);
 }
@@ -104,11 +104,7 @@ html, body, #root {
   overflow: hidden;
 }
 
-<<<<<<< HEAD
 /* Sidebar Design */
-=======
-/* 5. COMPACT SIDEBAR */
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 .sidebar {
   width: 440px;
   min-width: 440px;
@@ -119,7 +115,7 @@ html, body, #root {
   justify-content: space-between;
   border-right: 1px solid var(--border);
   height: 100%;
-  z-index: 10;
+  z-index: 500;
 }
 
 .sidebar-scroll-content {
@@ -159,12 +155,8 @@ html, body, #root {
   letter-spacing: 0.5px;
 }
 
-<<<<<<< HEAD
 .control-group select,
 .fuel-grid input {
-=======
-.control-group select {
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
   width: 100%;
   padding: 0.6rem 0.75rem;
   border-radius: var(--radius-md);
@@ -203,7 +195,6 @@ html, body, #root {
   border-color: var(--primary);
 }
 
-<<<<<<< HEAD
 /* Travel Mode Chips */
 .travel-mode-row {
   display: grid;
@@ -243,11 +234,6 @@ html, body, #root {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 6px;
-=======
-.categories-container {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.35rem;
   max-height: 120px;
   overflow-y: auto;
   padding-right: 2px;
@@ -260,7 +246,6 @@ html, body, #root {
 .categories-container::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 }
 
 .category-chip {
@@ -290,17 +275,10 @@ html, body, #root {
   box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
 }
 
-<<<<<<< HEAD
 /* Budget Filter Card */
 .budget-filter-group {
   background: #f8fafc;
   padding: 12px;
-=======
-/* Budget Filter Styling */
-.budget-filter-group {
-  background: #f8fafc;
-  padding: 8px 10px;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
@@ -313,18 +291,13 @@ html, body, #root {
 .budget-slider {
   width: 100%;
   accent-color: var(--primary);
-<<<<<<< HEAD
   margin-top: 8px;
   cursor: pointer;
-=======
-  margin-top: 4px;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 }
 
 .budget-ticks {
   display: flex;
   justify-content: space-between;
-<<<<<<< HEAD
   font-size: 0.68rem;
   color: var(--text-muted);
   margin-top: 4px;
@@ -363,20 +336,6 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.place-item {
-  padding: 0.8rem;
-=======
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.places-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
   margin-bottom: 0.75rem;
   max-height: 220px;
   overflow-y: auto;
@@ -393,17 +352,12 @@ html, body, #root {
 }
 
 .place-item {
-  padding: 0.6rem 0.75rem;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
+  padding: 0.8rem;
   background-color: #f8fafc;
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
   gap: 4px;
-=======
-  gap: 0.2rem;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
   border: 1px solid var(--border);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -413,11 +367,12 @@ html, body, #root {
   background-color: white;
   border-color: var(--primary);
   box-shadow: var(--shadow-card);
-<<<<<<< HEAD
   transform: translateY(-2px);
-=======
-  transform: translateY(-1px);
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
+}
+
+.place-item.selected {
+  border-color: var(--primary);
+  background: #eef2ff;
 }
 
 .featured-card {
@@ -426,7 +381,6 @@ html, body, #root {
 }
 
 .featured-badge {
-<<<<<<< HEAD
   font-size: 0.7rem;
   font-weight: 800;
   background: var(--primary);
@@ -434,15 +388,6 @@ html, body, #root {
   padding: 2px 8px;
   border-radius: 4px;
   width: max-content;
-=======
-  font-size: 0.68rem;
-  font-weight: 800;
-  background: var(--primary);
-  color: white;
-  padding: 2px 6px;
-  border-radius: 4px;
-  width: max-content;
-  margin-bottom: 2px;
 }
 
 .place-thumb {
@@ -457,16 +402,11 @@ html, body, #root {
   width: 100%;
   height: 100%;
   object-fit: cover;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 }
 
 .place-name {
   font-weight: 700;
-<<<<<<< HEAD
   font-size: 0.9rem;
-=======
-  font-size: 0.82rem;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
@@ -483,14 +423,8 @@ html, body, #root {
 
 .badges-row {
   display: flex;
-<<<<<<< HEAD
   gap: 6px;
   flex-wrap: wrap;
-=======
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 2px;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 }
 
 .distance-badge {
@@ -511,7 +445,6 @@ html, body, #root {
   font-weight: 700;
 }
 
-<<<<<<< HEAD
 .score-badge {
   padding: 2px 6px;
   background: #f1f5f9;
@@ -538,6 +471,12 @@ html, body, #root {
 .price-tag {
   font-size: 0.78rem;
   font-weight: 700;
+  color: #059669;
+}
+
+.price-tag-small {
+  font-size: 0.65rem;
+  font-weight: 600;
   color: #059669;
 }
 
@@ -609,19 +548,6 @@ html, body, #root {
 
 .balance-row.negative {
   color: #dc2626;
-=======
-.price-tag {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #059669;
-  margin-top: 2px;
-}
-
-.price-tag-small {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #059669;
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 }
 
 .no-results {
@@ -634,15 +560,12 @@ html, body, #root {
   border: 1px dashed var(--border);
 }
 
-<<<<<<< HEAD
 /* Action Button */
 .sidebar-footer-action {
   margin-top: 1rem;
   flex-shrink: 0;
 }
 
-=======
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 .action-button {
   background: var(--primary);
   color: white;
@@ -670,24 +593,38 @@ html, body, #root {
   box-shadow: none;
 }
 
-<<<<<<< HEAD
 /* Map Wrapper */
-=======
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
 .map-container-wrapper {
   flex: 1;
   height: 100%;
   width: 100%;
   position: relative;
-<<<<<<< HEAD
-=======
+  z-index: 1;
 }
 
-/* Custom InfoWindow Styles */
+/* Leaflet Engine Overrides */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-card) !important;
+  padding: 4px !important;
+  border: 1px solid var(--border);
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+}
+
+/* Leaflet Specific Popups (Replaces InfoWindow) */
 .custom-infowindow {
-  padding: 6px;
+  padding: 2px;
   max-width: 220px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 .iw-title {
@@ -735,8 +672,8 @@ html, body, #root {
   background: var(--primary);
   color: white;
   border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -746,5 +683,23 @@ html, body, #root {
 
 .iw-navigate-btn:hover {
   background: var(--primary-hover);
->>>>>>> 4392a154899d3cf18255be287fd7dd1833973bad
+}
+
+/* Responsive Mobile Layout */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column-reverse;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: 50vh;
+    border-right: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .map-container-wrapper {
+    height: 50vh;
+  }
 }
