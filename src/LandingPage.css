@@ -1,0 +1,69 @@
+.landing-wrapper { 
+    background-color: #f4f7f6; 
+    min-height: 100vh; 
+    display: flex; 
+    flex-direction: column; 
+    font-family: Arial, sans-serif;
+}
+
+.landing-header { 
+    display: flex; 
+    justify-content: flex-end; 
+    padding: 20px 30px; 
+}
+
+.admin-link { 
+    text-decoration: none; 
+    color: #333; 
+    font-weight: bold; 
+    border: 2px solid #333; 
+    padding: 8px 16px; 
+    border-radius: 6px; 
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.admin-link:hover { 
+    background: #333; 
+    color: #fff; 
+}
+
+.landing-container { 
+    flex: 1; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    padding-bottom: 10vh; 
+}
+
+.login-card { 
+    background: white; 
+    padding: 40px; 
+    border-radius: 12px; 
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1); 
+    text-align: center; 
+    width: 100%;
+    max-width: 350px; 
+}
+
+.login-card h2 { margin-top: 0; color: #2c3e50; }
+.login-card p { color: #7f8c8d; margin-bottom: 25px; font-size: 0.95em; }
+
+.btn { 
+    display: block; 
+    width: 100%; 
+    padding: 14px; 
+    margin: 15px 0; 
+    text-decoration: none; 
+    color: white; 
+    border-radius: 6px; 
+    box-sizing: border-box; 
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.btn-user { background-color: #3498db; }
+.btn-user:hover { background-color: #2980b9; }
+
+.btn-guest { background-color: #2ecc71; }
+.btn-guest:hover { background-color: #27ae60; }
