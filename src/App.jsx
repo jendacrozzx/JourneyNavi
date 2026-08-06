@@ -1,83 +1,73 @@
-// src/App.jsx
 import React, { useState } from 'react';
-import LandingPage from './LandingPage';
-import MainPage from './MainPage';
-import AdminLoginModal from './AdminLoginModal';
-import AuthModal from './AuthModal';
-import './App.css';
+import LandingPage from './LandingPage.jsx';
+import MainPage from './MainPage.jsx';
+import Signin from './Signin.jsx';
+import Signup from './Signup.jsx';
+import AdminLoginModal from './AdminLoginModal.jsx';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('landing');
-  const [initialRole, setInitialRole] = useState('user');
+  const [currentView, setCurrentView] = useState('landing'); 
+  const [userRole, setUserRole] = useState('user');
+  const [authMode, setAuthMode] = useState(null); 
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null); // Stores logged in user data
 
-  const handleEnterApp = (role = 'user') => {
-    setInitialRole(role);
-    setCurrentView('app');
-    setShowAdminModal(false);
-    setShowAuthModal(false);
+  const handleLoginSuccess = (userData) => {
+    setCurrentUser(userData); // Saves user object (contains email/name)
+    setUserRole('user');
+    setAuthMode(null);
+    setCurrentView('main');
   };
-
-  const handleAdminSuccess = () => {
-    setInitialRole('admin');
-    setCurrentView('app');
-    setShowAdminModal(false);
-    setShowAuthModal(false);
-  };
-
-  const handleLoginSuccess = (user) => {
-    handleEnterApp('user');
-  };
-
-  const handleGuestLogin = () => {
-    handleEnterApp('guest');
-  };
-
-  if (currentView === 'landing') {
-    return (
-      <div className="app-viewport-root">
-        <LandingPage 
-          onEnterApp={handleEnterApp} 
-          onOpenAdminModal={() => setShowAdminModal(true)} 
-          onOpenAuthModal={() => setShowAuthModal(true)}
-        />
-        {showAdminModal && (
-          <AdminLoginModal 
-            onClose={() => setShowAdminModal(false)} 
-            onAdminSuccess={handleAdminSuccess} 
-          />
-        )}
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-          onLoginSuccess={handleLoginSuccess}
-          onGuestLogin={handleGuestLogin}
-        />
-      </div>
-    );
-  }
 
   return (
-    <div className="app-viewport-root app-root">
-      <MainPage 
-        initialRole={initialRole} 
-        onBackToLanding={() => setCurrentView('landing')} 
-        onOpenAdminModal={() => setShowAdminModal(true)}
-        onOpenAuthModal={() => setShowAuthModal(true)}
-      />
+    <>
+      {currentView === 'landing' ? (
+        <LandingPage 
+          onEnterApp={() => setCurrentView('main')} 
+          onOpenAdminModal={() => setShowAdminModal(true)}
+          onOpenAuthModal={() => setAuthMode('signin')}
+          currentUser={currentUser}
+        />
+      ) : (
+        <MainPage 
+          initialRole={userRole} 
+          onBackToLanding={() => setCurrentView('landing')} 
+          onOpenAdminModal={() => setShowAdminModal(true)}
+          onOpenAuthModal={() => setAuthMode('signin')}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* Auth Modal Backdrop */}
+      {authMode && (
+        <div className="modal-backdrop" onClick={() => setAuthMode(null)}>
+          <div className="clean-modal-card" onClick={e => e.stopPropagation()}>
+            <button className="close-x-btn" onClick={() => setAuthMode(null)}>&times;</button>
+            {authMode === 'signin' ? (
+              <Signin 
+                onSwitchToSignup={() => setAuthMode('signup')} 
+                onLoginSuccess={handleLoginSuccess} 
+              />
+            ) : (
+              <Signup 
+                onSwitchToSignin={() => setAuthMode('signin')} 
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Admin Modal */}
       {showAdminModal && (
         <AdminLoginModal 
           onClose={() => setShowAdminModal(false)} 
-          onAdminSuccess={handleAdminSuccess} 
+          onLoginSuccess={() => {
+            setUserRole('admin');
+            setShowAdminModal(false);
+            setCurrentView('main');
+          }} 
         />
       )}
-      <AuthModal 
-        isOpen={showAuthModal} 
-        onClose={() => setShowAuthModal(false)} 
-        onLoginSuccess={handleLoginSuccess}
-        onGuestLogin={handleGuestLogin}
-      />
-    </div>
+    </>
   );
 }
