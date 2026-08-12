@@ -1,8 +1,6 @@
-// LandingPage.jsx
 import React from 'react';
 import './Landingpage.css';
 
-/* --- SVG Icon Set --- */
 const ArrowRightIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <path d="M5 12h14" />
@@ -10,7 +8,13 @@ const ArrowRightIcon = () => (
   </svg>
 );
 
-export default function LandingPage({ onEnterApp, onOpenAdminModal, onOpenAuthModal }) {
+export default function LandingPage({ 
+  onEnterApp, 
+  onOpenAdminModal, 
+  onOpenAuthModal, 
+  currentUser, 
+  onLogout 
+}) {
   return (
     <div className="landing-page-wrapper">
       <nav className="landing-top-nav">
@@ -20,13 +24,27 @@ export default function LandingPage({ onEnterApp, onOpenAdminModal, onOpenAuthMo
         </div>
 
         <div className="landing-nav-right">
-          <button className="nav-ghost-btn" onClick={onOpenAuthModal}>
-            Sign In
-          </button>
+          {currentUser ? (
+            <>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>
+                Hi, {currentUser.name || currentUser.email || 'User'}
+              </span>
+              <button className="nav-ghost-btn" onClick={onLogout}>
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button className="nav-ghost-btn" onClick={onOpenAuthModal}>
+              Sign In
+            </button>
+          )}
+
           <button className="nav-solid-btn" onClick={() => onEnterApp('user')}>
             Get Started
           </button>
+          
           <div className="nav-divider"></div>
+          
           <button className="admin-access-btn" onClick={onOpenAdminModal}>
             <span className="admin-icon">🛡️</span> Admin Console
           </button>
@@ -48,7 +66,6 @@ export default function LandingPage({ onEnterApp, onOpenAdminModal, onOpenAuthMo
           and OSRM matrices. Plan trips, calculate expenses, and explore locations effortlessly.
         </p>
 
-        {/* Hero Actions */}
         <div className="hero-cta-group">
           <button className="hero-primary-btn" onClick={() => onEnterApp('user')}>
             <span>Launch Workspace</span>

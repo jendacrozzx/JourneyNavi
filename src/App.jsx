@@ -10,13 +10,18 @@ export default function App() {
   const [userRole, setUserRole] = useState('user');
   const [authMode, setAuthMode] = useState(null); 
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null); // Stores logged in user data
+  const [currentUser, setCurrentUser] = useState(null);
 
   const handleLoginSuccess = (userData) => {
-    setCurrentUser(userData); // Saves user object (contains email/name)
+    setCurrentUser(userData);
     setUserRole('user');
     setAuthMode(null);
     setCurrentView('main');
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setUserRole('user');
   };
 
   return (
@@ -27,6 +32,7 @@ export default function App() {
           onOpenAdminModal={() => setShowAdminModal(true)}
           onOpenAuthModal={() => setAuthMode('signin')}
           currentUser={currentUser}
+          onLogout={handleLogout}
         />
       ) : (
         <MainPage 
@@ -35,33 +41,41 @@ export default function App() {
           onOpenAdminModal={() => setShowAdminModal(true)}
           onOpenAuthModal={() => setAuthMode('signin')}
           currentUser={currentUser}
+          onLogout={handleLogout}
         />
       )}
 
-      {/* Auth Modal Backdrop */}
       {authMode && (
         <div className="modal-backdrop" onClick={() => setAuthMode(null)}>
           <div className="clean-modal-card" onClick={e => e.stopPropagation()}>
-            <button className="close-x-btn" onClick={() => setAuthMode(null)}>&times;</button>
+            <button 
+              className="close-x-btn" 
+              onClick={() => setAuthMode(null)}
+              aria-label="Close modal"
+            >
+              &times;
+            </button>
+
             {authMode === 'signin' ? (
               <Signin 
                 onSwitchToSignup={() => setAuthMode('signup')} 
-                onLoginSuccess={handleLoginSuccess} 
+                onLoginSuccess={handleLoginSuccess}
+                onClose={() => setAuthMode(null)}
               />
             ) : (
               <Signup 
                 onSwitchToSignin={() => setAuthMode('signin')} 
+                onClose={() => setAuthMode(null)}
               />
             )}
           </div>
         </div>
       )}
 
-      {/* Admin Modal */}
       {showAdminModal && (
         <AdminLoginModal 
           onClose={() => setShowAdminModal(false)} 
-          onLoginSuccess={() => {
+          onAdminSuccess={() => {
             setUserRole('admin');
             setShowAdminModal(false);
             setCurrentView('main');

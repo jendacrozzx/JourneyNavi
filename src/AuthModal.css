@@ -1,91 +1,114 @@
-/* Modal Backdrop Overlay */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(6px);
+  background: rgba(5, 10, 25, 0.8);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
+  animation: fadeInBackdrop 0.25s ease-out;
 }
 
-/* Modal Box Container */
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .auth-card {
-  background: #0f172a; /* Rich dark navy background */
+  background: linear-gradient(145deg, #0f172a, #090d16);
   color: #f8fafc;
-  padding: 2.5rem;
-  border-radius: 20px;
+  padding: 2.75rem 2.5rem;
+  border-radius: 24px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
   border: 1px solid #1e293b;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.1rem;
   position: relative;
+  animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Title Styling */
+@keyframes slideUpModal {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .auth-card h2 {
-  font-size: 1.85rem;
-  font-weight: 700;
-  color: #ffffff;
+  font-size: 1.95rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #ffffff, #cbd5e1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   text-align: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
 }
 
-/* Input Fields Styling */
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 .editorial-input {
   width: 100%;
-  padding: 0.875rem 1rem;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  background: #131c31;
+  border: 1.5px solid #22304c;
+  border-radius: 12px;
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 0.95rem;
   outline: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
 .editorial-input::placeholder {
-  color: #94a3b8; /* Clear, visible placeholder color */
+  color: #64748b;
+  font-weight: 400;
+}
+
+.editorial-input:hover {
+  border-color: #3b82f6;
 }
 
 .editorial-input:focus {
   border-color: #6366f1;
   background: #0f172a;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
 }
 
-/* Action Button */
 .admin-submit-btn {
   width: 100%;
-  padding: 0.875rem;
-  background: #6366f1;
+  padding: 0.95rem;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+  margin-top: 0.75rem;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
 .admin-submit-btn:hover {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.5);
+  transform: translateY(-1px);
 }
 
 .admin-submit-btn:active {
-  transform: scale(0.98);
+  transform: translateY(1px) scale(0.98);
 }
 
-/* Footer Switch Text & Link */
 .auth-card p {
   text-align: center;
   color: #94a3b8;
@@ -99,24 +122,25 @@
   color: #818cf8;
   cursor: pointer;
   font-weight: 600;
-  text-decoration: underline;
+  text-decoration: none;
   padding: 0 0.25rem;
   font-size: 0.9rem;
+  transition: color 0.2s;
 }
 
 .link-btn:hover {
   color: #a5b4fc;
+  text-decoration: underline;
 }
 
-/* Close 'X' Button */
 .close-x-btn {
   position: absolute;
-  top: 18px;
+  top: 20px;
   right: 20px;
   background: #1e293b;
-  border: none;
-  width: 32px;
-  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -124,10 +148,11 @@
   font-size: 1.25rem;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .close-x-btn:hover {
   background: #334155;
   color: #fff;
+  transform: rotate(90deg);
 }

@@ -1,4 +1,3 @@
-// src/AdminLoginModal.jsx
 import React, { useState } from 'react';
 import './App.css';
 
@@ -18,7 +17,7 @@ export default function AdminLoginModal({ onClose, onAdminSuccess }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="admin-console-card" onClick={e => e.stopPropagation()}>
+      <div className="admin-console-card dark-theme-card" onClick={e => e.stopPropagation()}>
         <div className="admin-card-inner">
           <div className="admin-badge-head">
             <span>ADMINISTRATOR LOGIN</span>
@@ -45,7 +44,7 @@ export default function AdminLoginModal({ onClose, onAdminSuccess }) {
             </div>
 
             <div className="admin-modal-buttons">
-              <button type="button" className="nav-ghost-btn" onClick={onClose}>
+              <button type="button" className="nav-ghost-btn dark-ghost" onClick={onClose}>
                 Cancel
               </button>
               <button type="submit" className="admin-submit-btn">

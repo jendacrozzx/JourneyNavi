@@ -51,7 +51,14 @@ function MapViewController({ center, zoom, activePlace }) {
   return null;
 }
 
-export default function MainPage({ initialRole = 'user', onBackToLanding, onOpenAdminModal, onOpenAuthModal }) {
+export default function MainPage({ 
+  initialRole = 'user', 
+  onBackToLanding, 
+  onOpenAdminModal, 
+  onOpenAuthModal, 
+  currentUser, 
+  onLogout 
+}) {
   const [userRole, setUserRole] = useState(initialRole);
   const [selectedCity, setSelectedCity] = useState('Kathmandu');
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
@@ -87,6 +94,10 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
   const [newPlaceAddr, setNewPlaceAddr] = useState('');
 
   useEffect(() => {
+    setUserRole(initialRole);
+  }, [initialRole]);
+
+  useEffect(() => {
     localStorage.setItem('bca_admin_places', JSON.stringify(customPlaces));
   }, [customPlaces]);
 
@@ -98,7 +109,7 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
     else if (type === 'ride_hailing') setFuelEfficiency(0);
   };
 
-  const handleLogout = () => setUserRole('user');
+  const handleExitAdmin = () => setUserRole('user');
 
   const handleAddCustomPlace = (e) => {
     e.preventDefault();
@@ -160,67 +171,72 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
     setIsSearching(true);
     resetSearchState();
     setHasSearched(true);
+
     const origin = userLocation || [CITIES[selectedCity].lat, CITIES[selectedCity].lng];
     setMapCenter(origin);
 
-    try {
-      const adminPlaces = customPlaces.filter(p => p.category === activeCategory.id);
-      const radius = 10000; 
-      const tagQueries = activeCategory.tags.map(tag => `node[${tag}](around:${radius},${origin[0]},${origin[1]});`).join('');
-      const overpassQuery = `[out:json][timeout:20];(${tagQueries});out 30;`; 
+    const adminPlaces = customPlaces.filter(p => p.category === activeCategory.id);
+    const radius = 10000; 
+    const tagQueries = activeCategory.tags.map(tag => `node[${tag}](around:${radius},${origin[0]},${origin[1]});`).join('');
+    const overpassQuery = `[out:json][timeout:15];(${tagQueries});out body 30;`; 
 
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`);
-      const data = await response.json();
+    let realPlaces = [];
+    const apiEndpoints = [
+      'https://overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter'
+    ];
 
-      let realPlaces = [];
-      if (data && data.elements) {
-        realPlaces = data.elements.map(el => ({
-          id: `osm_${el.id}`,
-          name: el.tags?.name || `Local ${activeCategory.label.slice(0, -1)}`,
-          address: el.tags?.['addr:street'] || el.tags?.['addr:full'] || `${selectedCity} Regional Area`,
-          lat: el.lat,
-          lng: el.lon
-        }));
+    for (const endpoint of apiEndpoints) {
+      try {
+        const response = await fetch(`${endpoint}?data=${encodeURIComponent(overpassQuery)}`);
+        if (!response.ok) continue;
+
+        const data = await response.json();
+        if (data && data.elements && data.elements.length > 0) {
+          realPlaces = data.elements.map(el => ({
+            id: `osm_${el.id}`,
+            name: el.tags?.name || `Local ${activeCategory.label.slice(0, -1)}`,
+            address: el.tags?.['addr:street'] || el.tags?.['addr:full'] || `${selectedCity} Regional Area`,
+            lat: el.lat,
+            lng: el.lon
+          }));
+          break;
+        }
+      } catch (err) {
+        console.warn(`Primary Overpass mirror offline, trying alternative endpoint...`, err);
       }
-
-      let finalResults = [...adminPlaces, ...realPlaces];
-      
-      if (finalResults.length === 0) {
-        finalResults = [
-          { 
-            id: 'fallback_1', 
-            name: `Central ${selectedCity} ${activeCategory.label}`, 
-            address: `${selectedCity} Main Boulevard`, 
-            lat: origin[0] + 0.008, 
-            lng: origin[1] + 0.008 
-          },
-          { 
-            id: 'fallback_2', 
-            name: `Metro ${activeCategory.label.slice(0, -1)} Hub`, 
-            address: `${selectedCity} Downtown Sector`, 
-            lat: origin[0] - 0.009, 
-            lng: origin[1] + 0.012 
-          },
-          { 
-            id: 'fallback_3', 
-            name: `Express ${activeCategory.label.slice(0, -1)} Station`, 
-            address: `${selectedCity} Ring Road`, 
-            lat: origin[0] + 0.015, 
-            lng: origin[1] - 0.005 
-          }
-        ];
-      }
-
-      setPlaces(finalResults);
-    } catch (error) {
-      console.error('API Error:', error);
-      setPlaces([
-        { id: 'err_1', name: `Primary ${activeCategory.label}`, address: `${selectedCity} Sector A`, lat: origin[0] + 0.005, lng: origin[1] + 0.005 },
-        { id: 'err_2', name: `Secondary ${activeCategory.label}`, address: `${selectedCity} Sector B`, lat: origin[0] - 0.005, lng: origin[1] - 0.005 }
-      ]);
-    } finally {
-      setIsSearching(false);
     }
+
+    let finalResults = [...adminPlaces, ...realPlaces];
+
+    if (finalResults.length === 0) {
+      finalResults = [
+        { 
+          id: 'fallback_1', 
+          name: `Central ${selectedCity} ${activeCategory.label}`, 
+          address: `${selectedCity} Main Boulevard`, 
+          lat: origin[0] + 0.008, 
+          lng: origin[1] + 0.008 
+        },
+        { 
+          id: 'fallback_2', 
+          name: `Metro ${activeCategory.label.slice(0, -1)} Hub`, 
+          address: `${selectedCity} Downtown Sector`, 
+          lat: origin[0] - 0.009, 
+          lng: origin[1] + 0.012 
+        },
+        { 
+          id: 'fallback_3', 
+          name: `Express ${activeCategory.label.slice(0, -1)} Station`, 
+          address: `${selectedCity} Ring Road`, 
+          lat: origin[0] + 0.015, 
+          lng: origin[1] - 0.005 
+        }
+      ];
+    }
+
+    setPlaces(finalResults);
+    setIsSearching(false);
   };
 
   const handleSelectPlace = (place) => {
@@ -296,12 +312,21 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
         
         <div className="header-meta">
           <button className="nav-ghost-btn" onClick={onBackToLanding}>Home</button>
-          <button className="nav-ghost-btn" onClick={onOpenAuthModal}>Sign In / Up</button>
+          
+          {currentUser ? (
+            <div className="admin-status-pill" style={{ background: '#f1f5f9', borderColor: '#cbd5e1', color: '#334155' }}>
+              <span>👤 {currentUser.name || currentUser.email || 'User'}</span>
+              <button className="inline-exit-btn" onClick={onLogout}>Log Out</button>
+            </div>
+          ) : (
+            <button className="nav-ghost-btn" onClick={onOpenAuthModal}>Sign In / Up</button>
+          )}
+
           {userRole === 'admin' ? (
             <div className="admin-status-pill">
               <span className="pulsing-dot"></span>
               <span>Admin Mode</span>
-              <button className="inline-exit-btn" onClick={handleLogout}>Exit</button>
+              <button className="inline-exit-btn" onClick={handleExitAdmin}>Exit</button>
             </div>
           ) : (
             <button className="admin-access-btn" onClick={onOpenAdminModal}>🛡️ Admin</button>
@@ -314,7 +339,7 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
           <div className="sidebar-scroll-content">
             <div className="sidebar-title-block">
               <h2>{userRole === 'admin' ? 'Admin Control Panel' : 'Route Planner'}</h2>
-              <p>Select location categories & compute budget-optimized trips</p>
+              <p>Select location categories &amp; compute budget-optimized trips</p>
             </div>
 
             {userRole === 'admin' && (
@@ -432,7 +457,7 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
                   <div className="map-popup-card">
                     <strong>{place.name}</strong>
                     <span>{place.address}</span>
-                    <button className="popup-route-trigger" onClick={() => handleSelectPlace(place)}>Select Transit & Budget</button>
+                    <button className="popup-route-trigger" onClick={() => handleSelectPlace(place)}>Select Transit &amp; Budget</button>
                   </div>
                 </Popup>
               </Marker>
@@ -442,6 +467,7 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
         </section>
       </main>
 
+      {/* Transport & Budget Modal */}
       {showTransitModal && (
         <div className="modal-backdrop" onClick={() => setShowTransitModal(false)}>
           <div className="clean-modal-card" onClick={e => e.stopPropagation()}>
@@ -508,12 +534,13 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
 
             <div className="clean-modal-footer">
               <button className="nav-ghost-btn" onClick={() => setShowTransitModal(false)}>Cancel</button>
-              <button className="admin-submit-btn" onClick={handleConfirmTransitRoute}>Calculate Route & Budget ➔</button>
+              <button className="admin-submit-btn" onClick={handleConfirmTransitRoute}>Calculate Route &amp; Budget ➔</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Spot Discovery Modal */}
       {showAiFunModal && (
         <div className="modal-backdrop" onClick={() => setShowAiFunModal(false)}>
           <div className="ai-fun-modal-container" onClick={e => e.stopPropagation()}>
@@ -545,4 +572,4 @@ export default function MainPage({ initialRole = 'user', onBackToLanding, onOpen
       )}
     </div>
   );
-} 
+}

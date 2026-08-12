@@ -1,8 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap');
 
-/* =========================================
-   DESIGN TOKENS
-   ========================================= */
 :root {
   --route: #ff5500;
   --route-hover: #e04a00;
@@ -41,9 +38,6 @@ body {
   background-color: var(--slate-50);
 }
 
-/* =========================================
-   LANDING PAGE TOP NAV
-   ========================================= */
 .landing-page-wrapper {
   font-family: var(--font-body);
   background-color: var(--slate-50);
@@ -107,7 +101,6 @@ button {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Nav Buttons */
 .nav-ghost-btn {
   background: transparent;
   border: 1px solid var(--slate-200);
@@ -159,9 +152,6 @@ button {
   color: var(--slate-900);
 }
 
-/* =========================================
-   HERO SECTION
-   ========================================= */
 .landing-hero-container {
   max-width: 920px;
   margin: 0 auto;
@@ -207,9 +197,6 @@ button {
   margin-right: auto;
 }
 
-/* =========================================
-   HERO BUTTON GROUP & STYLING FIX
-   ========================================= */
 .hero-cta-group {
   display: flex;
   align-items: center;
@@ -281,9 +268,6 @@ button {
   color: #ffffff;
 }
 
-/* =========================================
-   ARCHITECTURAL GRID
-   ========================================= */
 .architectural-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

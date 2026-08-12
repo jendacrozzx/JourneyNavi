@@ -1,40 +1,165 @@
 import React, { useState } from 'react';
 
-export default function Signin({ onSwitchToSignup, onLoginSuccess }) {
+export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [status, setStatus] = useState({ text: '', isError: false });
+  const [loading, setLoading] = useState(false);
 
-  const handleSignin = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
+    setStatus({ text: '', isError: false });
+
+    if (password !== confirmPassword) {
+      setStatus({ text: 'Passwords do not match.', isError: true });
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const res = await fetch('http://localhost/journeynavi-backend/auth.php', {
+      const res = await fetch('http://localhost/backend/auth.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'signin', email, password })
+        body: JSON.stringify({ action: 'signup', name, email, password })
       });
       const data = await res.json();
+
       if (data.status === 'success') {
-        onLoginSuccess(data.user); // Passes user profile data (name, email) up
+        setStatus({ text: data.message || 'Account created successfully!', isError: false });
+        if (onSignupSuccess) {
+          onSignupSuccess(data.user); // Passes created user data up
+        }
       } else {
-        alert(data.message);
+        setStatus({ text: data.message || 'Failed to create account.', isError: true });
       }
     } catch (err) {
       console.error('Fetch error:', err);
-      alert('Failed to connect to the server.');
+      setStatus({ 
+        text: 'Failed to connect to the server. Check if XAMPP Apache is running.', 
+        isError: true 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="auth-card">
-      <h2>Welcome Back</h2>
-      <form onSubmit={handleSignin}>
-        <input type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} required className="editorial-input" />
-        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="editorial-input" />
-        <button type="submit" className="admin-submit-btn">Sign In</button>
-      </form>
-      <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
-        Don't have an account? <button type="button" onClick={onSwitchToSignup} className="link-btn">Sign Up</button>
-      </p>
+    <div className="modal-backdrop">
+      <div className={`admin-console-card ${status.isError ? 'shake-error' : ''}`}>
+        <div className="admin-card-inner">
+          
+          {/* Header & Close Action */}
+          <div className="admin-badge-head">
+            <span>CREATE ACCOUNT</span>
+            {onClose && (
+              <button type="button" className="close-x-btn" onClick={onClose}>
+                &times;
+              </button>
+            )}
+          </div>
+
+          <h2>Sign Up</h2>
+          <p className="admin-desc">
+            Register your credentials to start managing your trips and routes.
+          </p>
+
+          {/* Response Message Banner */}
+          {status.text && (
+            <div style={{ 
+              padding: '0.75rem 1rem', 
+              marginBottom: '1.25rem', 
+              color: status.isError ? '#991b1b' : '#166534',
+              backgroundColor: status.isError ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${status.isError ? '#fecaca' : '#bbf7d0'}`,
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: '600'
+            }}>
+              {status.text}
+            </div>
+          )}
+
+          <form onSubmit={handleSignup} className="admin-form">
+            <div className="form-field">
+              <label>Full Name</label>
+              <input 
+                type="text" 
+                placeholder="John Doe" 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Email Address</label>
+              <input 
+                type="email" 
+                placeholder="name@example.com" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Confirm Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                value={confirmPassword} 
+                onChange={e => setConfirmPassword(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <div className="admin-modal-buttons">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="admin-submit-btn"
+              >
+                {loading ? 'Creating Account...' : 'Sign Up'}
+              </button>
+            </div>
+          </form>
+
+          {/* Mode Switcher */}
+          <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+            Already have an account?{' '}
+            <button 
+              type="button" 
+              onClick={onSwitchToSignin}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: '#2563eb', 
+                cursor: 'pointer', 
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                marginLeft: '0.25rem'
+              }}
+            >
+              Sign In
+            </button>
+          </p>
+
+        </div>
+      </div>
     </div>
   );
 }

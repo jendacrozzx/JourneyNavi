@@ -1,21 +1,15 @@
 import React, { useState } from 'react';
 
-const AuthModal = () => {
-  // Toggle between Sign In and Sign Up view
+const AuthModal = ({ onClose, onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
-
-  // Form input state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: ''
   });
-
-  // Feedback message state
   const [status, setStatus] = useState({ text: '', isError: false });
   const [loading, setLoading] = useState(false);
 
-  // Update input state as user types
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -23,13 +17,11 @@ const AuthModal = () => {
     });
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ text: '', isError: false });
     setLoading(true);
 
-    // Target the appropriate PHP script in XAMPP htdocs/Server
     const endpoint = isSignUp 
       ? 'http://localhost/Server/signup.php' 
       : 'http://localhost/Server/signin.php';
@@ -49,21 +41,20 @@ const AuthModal = () => {
         setStatus({ text: data.message, isError: false });
 
         if (!isSignUp) {
-          // --- SIGN IN SUCCESS ---
-          // Save user data (e.g., to localStorage or React state context)
           localStorage.setItem('user', JSON.stringify(data.user));
-          console.log('Logged in user:', data.user);
+          if (onLoginSuccess) onLoginSuccess(data.user);
+          if (onClose) onClose();
         } else {
-          // --- SIGN UP SUCCESS ---
-          // Reset input form
           setFormData({ name: '', email: '', password: '' });
+          setTimeout(() => {
+            setIsSignUp(false);
+            setStatus({ text: 'Account created successfully! Please sign in.', isError: false });
+          }, 1500);
         }
       } else {
-        // Backend returned a validation or database error
         setStatus({ text: data.message, isError: true });
       }
     } catch (error) {
-      // Network or Apache server connection error
       setStatus({ 
         text: 'Unable to reach the server. Make sure Apache is running in XAMPP.', 
         isError: true 
@@ -73,92 +64,147 @@ const AuthModal = () => {
     }
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget && onClose) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="auth-modal-container" style={{ maxWidth: '400px', margin: 'auto', padding: '20px' }}>
-      <h2>{isSignUp ? 'Create Account' : 'Sign In'}</h2>
-
-      {/* Response Message Banner */}
-      {status.text && (
-        <div style={{ 
-          padding: '10px', 
-          marginBottom: '15px', 
-          color: status.isError ? '#721c24' : '#155724',
-          backgroundColor: status.isError ? '#f8d7da' : '#d4edda',
-          borderRadius: '4px'
-        }}>
-          {status.text}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit}>
-        {/* Name input only shows during Sign Up */}
-        {isSignUp && (
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ display: 'block' }}>Full Name</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              style={{ width: '100%', padding: '8px' }}
-            />
+    <div className="modal-backdrop" onClick={handleBackdropClick}>
+      <div className={`admin-console-card ${status.isError ? 'shake-error' : ''}`}>
+        <div className="admin-card-inner">
+          
+          <div className="admin-badge-head">
+            <span>{isSignUp ? 'REGISTER' : 'WELCOME BACK'}</span>
+            {onClose && (
+              <button 
+                type="button" 
+                className="close-x-btn" 
+                onClick={onClose}
+                aria-label="Close modal"
+              >
+                &times;
+              </button>
+            )}
           </div>
-        )}
 
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ display: 'block' }}>Email Address</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          />
+          <h2>{isSignUp ? 'Create Account' : 'Sign In'}</h2>
+          <p className="admin-desc">
+            {isSignUp 
+              ? 'Enter your credentials to register a new workspace profile.' 
+              : 'Enter your credentials to access your dashboard workspace.'}
+          </p>
+
+          {status.text && (
+            <div style={{ 
+              padding: '0.75rem 1rem', 
+              marginBottom: '1.25rem', 
+              color: status.isError ? '#1b2c99' : '#166534',
+              backgroundColor: status.isError ? '#fef2f2' : '#f0fdf4',
+              border: `1px solid ${status.isError ? '#fecaca' : '#bbf7d0'}`,
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              fontWeight: '600'
+            }}>
+              {status.text}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="admin-form">
+            {isSignUp && (
+              <div className="form-field">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
+
+            <div className="form-field">
+              <label>Email Address</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="name@example.com"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="form-field">
+              <label>Password</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="admin-modal-buttons" style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+              {onClose && (
+                <button 
+                  type="button" 
+                  onClick={onClose}
+                  className="admin-cancel-btn"
+                  style={{
+                    flex: '1',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#f8fafc',
+                    color: '#475569',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="admin-submit-btn"
+                style={{ flex: '1' }}
+              >
+                {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              </button>
+            </div>
+          </form>
+
+          <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button 
+              type="button" 
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setStatus({ text: '', isError: false });
+              }}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: '#2563eb', 
+                cursor: 'pointer', 
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                marginLeft: '0.25rem'
+              }}
+            >
+              {isSignUp ? 'Sign In' : 'Sign Up'}
+            </button>
+          </p>
+
         </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block' }}>Password</label>
-          <input
-            type="password"
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={{ width: '100%', padding: '8px' }}
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ width: '100%', padding: '10px', cursor: 'pointer' }}
-        >
-          {loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Sign In'}
-        </button>
-      </form>
-
-      {/* Mode Switcher */}
-      <p style={{ marginTop: '15px', textAlign: 'center' }}>
-        {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-        <button 
-          type="button" 
-          onClick={() => {
-            setIsSignUp(!isSignUp);
-            setStatus({ text: '', isError: false });
-          }}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: '#007bff', 
-            cursor: 'pointer', 
-            textDecoration: 'underline' 
-          }}
-        >
-          {isSignUp ? 'Sign In' : 'Sign Up'}
-        </button>
-      </p>
+      </div>
     </div>
   );
 };
