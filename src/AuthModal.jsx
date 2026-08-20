@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 
-const AuthModal = ({ onClose, onLoginSuccess }) => {
+const AuthModal = ({ onClose }) => {
+  // Toggle between Sign In and Sign Up view
   const [isSignUp, setIsSignUp] = useState(false);
+
+  // Form input state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: ''
   });
+
+  // Feedback message state
   const [status, setStatus] = useState({ text: '', isError: false });
   const [loading, setLoading] = useState(false);
 
+  // Update input state as user types
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -17,11 +23,13 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
     });
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus({ text: '', isError: false });
     setLoading(true);
 
+    // Target the appropriate PHP script in XAMPP htdocs/Server
     const endpoint = isSignUp 
       ? 'http://localhost/Server/signup.php' 
       : 'http://localhost/Server/signin.php';
@@ -41,10 +49,12 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
         setStatus({ text: data.message, isError: false });
 
         if (!isSignUp) {
+          // --- SIGN IN SUCCESS ---
           localStorage.setItem('user', JSON.stringify(data.user));
-          if (onLoginSuccess) onLoginSuccess(data.user);
+          console.log('Logged in user:', data.user);
           if (onClose) onClose();
         } else {
+          // --- SIGN UP SUCCESS ---
           setFormData({ name: '', email: '', password: '' });
           setTimeout(() => {
             setIsSignUp(false);
@@ -64,6 +74,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
     }
   };
 
+  // Close modal when clicking on the dark backdrop area
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget && onClose) {
       onClose();
@@ -75,6 +86,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
       <div className={`admin-console-card ${status.isError ? 'shake-error' : ''}`}>
         <div className="admin-card-inner">
           
+          {/* Header & Top Right Close 'X' */}
           <div className="admin-badge-head">
             <span>{isSignUp ? 'REGISTER' : 'WELCOME BACK'}</span>
             {onClose && (
@@ -96,6 +108,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
               : 'Enter your credentials to access your dashboard workspace.'}
           </p>
 
+          {/* Response Message Banner */}
           {status.text && (
             <div style={{ 
               padding: '0.75rem 1rem', 
@@ -112,6 +125,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
           )}
 
           <form onSubmit={handleSubmit} className="admin-form">
+            {/* Name input only shows during Sign Up */}
             {isSignUp && (
               <div className="form-field">
                 <label>Full Name</label>
@@ -150,6 +164,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
               />
             </div>
 
+            {/* Action Buttons: Cancel/Close & Submit */}
             <div className="admin-modal-buttons" style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
               {onClose && (
                 <button 
@@ -181,6 +196,7 @@ const AuthModal = ({ onClose, onLoginSuccess }) => {
             </div>
           </form>
 
+          {/* Mode Switcher */}
           <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button 

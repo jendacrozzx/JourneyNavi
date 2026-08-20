@@ -10,7 +10,7 @@ export default function App() {
   const [userRole, setUserRole] = useState('user');
   const [authMode, setAuthMode] = useState(null); 
   const [showAdminModal, setShowAdminModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null); // Stores logged-in user data
 
   const handleLoginSuccess = (userData) => {
     setCurrentUser(userData);
@@ -45,6 +45,7 @@ export default function App() {
         />
       )}
 
+      {/* Auth Modal Backdrop */}
       {authMode && (
         <div className="modal-backdrop" onClick={() => setAuthMode(null)}>
           <div className="clean-modal-card" onClick={e => e.stopPropagation()}>
@@ -72,6 +73,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Admin Login Modal */}
       {showAdminModal && (
         <AdminLoginModal 
           onClose={() => setShowAdminModal(false)} 

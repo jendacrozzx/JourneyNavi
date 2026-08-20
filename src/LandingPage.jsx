@@ -27,7 +27,7 @@ export default function LandingPage({
           {currentUser ? (
             <>
               <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#334155' }}>
-                Hi, {currentUser.name || currentUser.email || 'User'}
+                Hi, {currentUser.name || currentUser.email || 'Arshia'}
               </span>
               <button className="nav-ghost-btn" onClick={onLogout}>
                 Sign Out
@@ -66,6 +66,7 @@ export default function LandingPage({
           and OSRM matrices. Plan trips, calculate expenses, and explore locations effortlessly.
         </p>
 
+        {/* Hero Actions */}
         <div className="hero-cta-group">
           <button className="hero-primary-btn" onClick={() => onEnterApp('user')}>
             <span>Launch Workspace</span>

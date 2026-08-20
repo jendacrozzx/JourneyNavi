@@ -135,6 +135,9 @@ html, body, #root {
 }
 .admin-access-btn:hover { background: #dbeafe; }
 
+/* ==========================================================================
+   UPDATED USER BADGE & LOGOUT BUTTON
+   ========================================================================== */
 .user-badge {
   display: inline-flex !important;
   align-items: center !important;
@@ -186,6 +189,9 @@ html, body, #root {
   transform: translateY(0);
 }
 
+/* ==========================================================================
+   LANDING HERO & ARCHITECTURAL GRID
+   ========================================================================== */
 .landing-hero-container {
   max-width: 960px;
   margin: 4rem auto;
@@ -269,6 +275,9 @@ html, body, #root {
   color: #64748b;
 }
 
+/* ==========================================================================
+   MODALS
+   ========================================================================== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -719,6 +728,9 @@ html, body, #root {
 }
 .ai-trigger-sub-btn:hover { background: #dbeafe; }
 
+/* ==========================================================================
+   MAIN DASHBOARD
+   ========================================================================== */
 .dashboard-container {
   display: flex;
   flex-direction: column;
@@ -796,6 +808,7 @@ html, body, #root {
   margin-left: 0.25rem;
 }
 
+/* Dashboard Layout */
 .main-content {
   display: flex;
   flex: 1;
@@ -895,6 +908,7 @@ html, body, #root {
 }
 .editorial-select:focus, .editorial-input:focus { border-color: #2563eb; }
 
+/* Taxonomy Grid */
 .taxonomy-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -927,6 +941,7 @@ html, body, #root {
   color: #ffffff;
 }
 
+/* Budgeting */
 .budget-top-row {
   display: flex;
   justify-content: space-between;
@@ -944,6 +959,7 @@ html, body, #root {
   accent-color: #2563eb;
 }
 
+/* Admin Cluster */
 .admin-control-cluster {
   background: #eff6ff;
   border: 1px solid #bfdbfe;
@@ -1003,6 +1019,7 @@ html, body, #root {
   font-size: 0.65rem;
 }
 
+/* Places Stack */
 .places-stack {
   display: flex;
   flex-direction: column;
@@ -1048,6 +1065,7 @@ html, body, #root {
   border-radius: 3px;
 }
 
+/* Matrix Analysis Panel */
 .matrix-analysis-panel {
   background: #1e293b;
   color: #ffffff;
@@ -1114,6 +1132,7 @@ html, body, #root {
 }
 .execute-scan-btn:hover { background: #1d4ed8; }
 
+/* Map Wrapper */
 .map-wrapper {
   flex: 1;
   height: 100%;
@@ -1124,6 +1143,7 @@ html, body, #root {
   height: 100%;
 }
 
+/* Map Popups */
 .map-popup-card {
   display: flex;
   flex-direction: column;

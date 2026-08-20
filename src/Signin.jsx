@@ -1,39 +1,28 @@
 import React, { useState } from 'react';
 
-export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
-  const [name, setName] = useState('');
+export default function Signin({ onSwitchToSignup, onLoginSuccess, onClose }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [status, setStatus] = useState({ text: '', isError: false });
   const [loading, setLoading] = useState(false);
 
-  const handleSignup = async (e) => {
+  const handleSignin = async (e) => {
     e.preventDefault();
     setStatus({ text: '', isError: false });
-
-    if (password !== confirmPassword) {
-      setStatus({ text: 'Passwords do not match.', isError: true });
-      return;
-    }
-
     setLoading(true);
 
     try {
       const res = await fetch('http://localhost/backend/auth.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'signup', name, email, password })
+        body: JSON.stringify({ action: 'signin', email, password })
       });
       const data = await res.json();
-
       if (data.status === 'success') {
-        setStatus({ text: data.message || 'Account created successfully!', isError: false });
-        if (onSignupSuccess) {
-          onSignupSuccess(data.user); // Passes created user data up
-        }
+        setStatus({ text: data.message || 'Signed in successfully!', isError: false });
+        if (onLoginSuccess) onLoginSuccess(data.user); // Passes user profile data up
       } else {
-        setStatus({ text: data.message || 'Failed to create account.', isError: true });
+        setStatus({ text: data.message || 'Invalid email or password.', isError: true });
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -53,7 +42,7 @@ export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
           
           {/* Header & Close Action */}
           <div className="admin-badge-head">
-            <span>CREATE ACCOUNT</span>
+            <span>WELCOME BACK</span>
             {onClose && (
               <button type="button" className="close-x-btn" onClick={onClose}>
                 &times;
@@ -61,9 +50,9 @@ export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
             )}
           </div>
 
-          <h2>Sign Up</h2>
+          <h2>Sign In</h2>
           <p className="admin-desc">
-            Register your credentials to start managing your trips and routes.
+            Enter your credentials to access your dashboard workspace.
           </p>
 
           {/* Response Message Banner */}
@@ -82,18 +71,7 @@ export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
             </div>
           )}
 
-          <form onSubmit={handleSignup} className="admin-form">
-            <div className="form-field">
-              <label>Full Name</label>
-              <input 
-                type="text" 
-                placeholder="John Doe" 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
-                required 
-              />
-            </div>
-
+          <form onSubmit={handleSignin} className="admin-form">
             <div className="form-field">
               <label>Email Address</label>
               <input 
@@ -116,34 +94,23 @@ export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
               />
             </div>
 
-            <div className="form-field">
-              <label>Confirm Password</label>
-              <input 
-                type="password" 
-                placeholder="••••••••" 
-                value={confirmPassword} 
-                onChange={e => setConfirmPassword(e.target.value)} 
-                required 
-              />
-            </div>
-
             <div className="admin-modal-buttons">
               <button 
                 type="submit" 
                 disabled={loading}
                 className="admin-submit-btn"
               >
-                {loading ? 'Creating Account...' : 'Sign Up'}
+                {loading ? 'Processing...' : 'Sign In'}
               </button>
             </div>
           </form>
 
           {/* Mode Switcher */}
           <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-            Already have an account?{' '}
+            Don't have an account?{' '}
             <button 
               type="button" 
-              onClick={onSwitchToSignin}
+              onClick={onSwitchToSignup}
               style={{ 
                 background: 'none', 
                 border: 'none', 
@@ -154,7 +121,7 @@ export default function Signup({ onSwitchToSignin, onSignupSuccess, onClose }) {
                 marginLeft: '0.25rem'
               }}
             >
-              Sign In
+              Sign Up
             </button>
           </p>
 

@@ -22,12 +22,9 @@ export default function Signup({ onSwitchToSignin, onRegisterSuccess, onClose })
       const data = await res.json();
       if (data.status === 'success') {
         setStatus({ text: data.message || 'Account created successfully! Please sign in.', isError: false });
-        
         if (onRegisterSuccess) onRegisterSuccess();
-
-        // Smooth transition to Signin modal after successful registration
         setTimeout(() => {
-          if (onSwitchToSignin) onSwitchToSignin();
+          onSwitchToSignin();
         }, 1200);
       } else {
         setStatus({ text: data.message || 'Registration failed.', isError: true });
