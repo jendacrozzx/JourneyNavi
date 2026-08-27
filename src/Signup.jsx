@@ -9,6 +9,33 @@ export default function Signup({ onSwitchToSignin, onRegisterSuccess, onClose })
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    
+    // --- FRONTEND VALIDATIONS ---
+    
+    // 1. Name validation: Ensure it only contains letters and spaces (no numbers)
+    if (!/^[a-zA-Z\s]+$/.test(name)) {
+      setStatus({ text: 'Name can only contain letters and spaces (no numbers).', isError: true });
+      return;
+    }
+
+    // 2. Email validation: Must be a @gmail.com address (case-sensitive)
+    if (!email.endsWith('@gmail.com')) {
+      setStatus({ text: 'You must use a valid @gmail.com address.', isError: true });
+      return;
+    }
+
+    // 3. Password validation: Must have at least one uppercase letter and be at least 6 chars
+    if (password.length < 6) {
+      setStatus({ text: 'Password must be at least 6 characters long.', isError: true });
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setStatus({ text: 'Password must contain at least one uppercase letter.', isError: true });
+      return;
+    }
+
+    // ----------------------------
+
     setStatus({ text: '', isError: false });
     setLoading(true);
 
@@ -92,7 +119,7 @@ export default function Signup({ onSwitchToSignin, onRegisterSuccess, onClose })
               <label>Email Address</label>
               <input 
                 type="email" 
-                placeholder="name@example.com" 
+                placeholder="name@gmail.com" 
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -7,6 +7,10 @@ import './App.css';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+// Components
+import WeatherWidget from './components/WeatherWidget';
+import { PackingList } from './components/PackingList';
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -62,115 +66,108 @@ export default function MainPage({
   const [userRole, setUserRole] = useState(initialRole);
   const [selectedCity, setSelectedCity] = useState('Kathmandu');
   const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
+  
   const [places, setPlaces] = useState([]);
-  const [activeMarker, setActiveMarker] = useState(null);
-  const [mapCenter, setMapCenter] = useState([CITIES.Kathmandu.lat, CITIES.Kathmandu.lng]);
-  const [mapZoom, setMapZoom] = useState(13);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [apiError, setApiError] = useState(null); 
 
+  const [mapCenter, setMapCenter] = useState([CITIES.Kathmandu.lat, CITIES.Kathmandu.lng]);
+  const [mapZoom, setMapZoom] = useState(13);
   const [userLocation, setUserLocation] = useState(null);
   const [locationStatus, setLocationStatus] = useState('Use Current GPS');
-  const [budget, setBudget] = useState(5000);
-
+  
+  // Budget State
+  const [budgets, setBudgets] = useState({ transport: 2000, accommodation: 5000, foodAndActivities: 3000 });
   const [vehicleType, setVehicleType] = useState('bike');
   const [rideService, setRideService] = useState('pathao');
   const [fuelEfficiency, setFuelEfficiency] = useState(35);
   const [fuelPrice, setFuelPrice] = useState(170);
 
-  const [routeGeometry, setRouteGeometry] = useState(null);
-  const [routeInfo, setRouteInfo] = useState(null);
+  // Multi-Stop Itinerary State
+  const [itinerary, setItinerary] = useState([]);
+  const [stopSpend, setStopSpend] = useState({ accommodation: 0, foodAndActivities: 0 });
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false);
 
   const [showTransitModal, setShowTransitModal] = useState(false);
-  const [showAiFunModal, setShowAiFunModal] = useState(false);
   const [selectedPlaceForTransit, setSelectedPlaceForTransit] = useState(null);
-
-  const [customPlaces, setCustomPlaces] = useState(() => {
-    const saved = localStorage.getItem('bca_admin_places');
-    return saved ? JSON.parse(saved) : [];
-  });
   
-  const [newPlaceName, setNewPlaceName] = useState('');
-  const [newPlaceAddr, setNewPlaceAddr] = useState('');
+  const [customPlaces, setCustomPlaces] = useState(() => {
+    try {
+      const saved = localStorage.getItem('bca_admin_places');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
 
-  useEffect(() => {
-    setUserRole(initialRole);
-  }, [initialRole]);
+  const [savedPlaces, setSavedPlaces] = useState([]);
+  const [viewingSaved, setViewingSaved] = useState(false);
 
+  const totalBudget = useMemo(() => 
+    budgets.transport + budgets.accommodation + budgets.foodAndActivities, 
+  [budgets]);
+
+  // Calculate Running Costs
+  const totalSpent = useMemo(() => itinerary.reduce((acc, stop) => ({
+    transport: acc.transport + (stop.info?.transitCost || 0),
+    accommodation: acc.accommodation + (stop.spend?.accommodation || 0),
+    foodAndActivities: acc.foodAndActivities + (stop.spend?.foodAndActivities || 0)
+  }), { transport: 0, accommodation: 0, foodAndActivities: 0 }), [itinerary]);
+
+  const listToRender = useMemo(() => 
+    viewingSaved ? savedPlaces : places, 
+  [viewingSaved, savedPlaces, places]);
+
+  useEffect(() => setUserRole(initialRole), [initialRole]);
+  
   useEffect(() => {
     localStorage.setItem('bca_admin_places', JSON.stringify(customPlaces));
   }, [customPlaces]);
 
-  const handleVehicleChange = (type) => {
-    setVehicleType(type);
-    if (type === 'bike') setFuelEfficiency(35);
-    else if (type === 'car') setFuelEfficiency(12);
-    else if (type === 'cycle') setFuelEfficiency(0);
-    else if (type === 'ride_hailing') setFuelEfficiency(0);
-  };
+  useEffect(() => {
+    if (currentUser) {
+      const userKey = `journey_saved_${currentUser.email || currentUser.id || 'user'}`;
+      try {
+        const saved = localStorage.getItem(userKey);
+        setSavedPlaces(saved ? JSON.parse(saved) : []);
+      } catch (e) {
+        setSavedPlaces([]);
+      }
+    } else {
+      setSavedPlaces([]);
+      setViewingSaved(false);
+    }
+  }, [currentUser]);
 
-  const handleExitAdmin = () => setUserRole('user');
+  useEffect(() => {
+    if (currentUser) {
+      const userKey = `journey_saved_${currentUser.email || currentUser.id || 'user'}`;
+      localStorage.setItem(userKey, JSON.stringify(savedPlaces));
+    }
+  }, [savedPlaces, currentUser]);
 
-  const handleAddCustomPlace = (e) => {
-    e.preventDefault();
-    if (!newPlaceName || !newPlaceAddr) return alert('Please enter both Name and Address.');
-    const cityCoords = CITIES[selectedCity];
-    const newEntry = {
-      id: `admin_custom_${Date.now()}`,
-      name: newPlaceName,
-      address: newPlaceAddr,
-      lat: cityCoords.lat + (Math.random() - 0.5) * 0.04,
-      lng: cityCoords.lng + (Math.random() - 0.5) * 0.04,
-      category: activeCategory.id,
-      isCustom: true
-    };
-    setCustomPlaces([...customPlaces, newEntry]);
-    setNewPlaceName('');
-    setNewPlaceAddr('');
-  };
+  const handleToggleSavePlace = useCallback((place, e) => {
+    if (e) e.stopPropagation(); 
+    if (!currentUser) return onOpenAuthModal();
+    setSavedPlaces(prev => {
+      const isSaved = prev.some(p => p.id === place.id);
+      return isSaved ? prev.filter(p => p.id !== place.id) : [...prev, place];
+    });
+  }, [currentUser, onOpenAuthModal]);
 
-  const handleDeleteCustomPlace = (id) => {
-    setCustomPlaces(customPlaces.filter(p => p.id !== id));
-    setPlaces(places.filter(p => p.id !== id));
-  };
-
-  const handleCityChange = (e) => {
-    const cityName = e.target.value;
-    setSelectedCity(cityName);
-    setUserLocation(null); 
-    setLocationStatus('Use Current GPS');
-    setMapCenter([CITIES[cityName].lat, CITIES[cityName].lng]);
-    setMapZoom(13);
-    resetSearchState();
-  };
-
-  const handleShareLocation = () => {
-    if (!navigator.geolocation) return alert('Geolocation is not supported.');
-    setLocationStatus('Locating...');
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const pos = [position.coords.latitude, position.coords.longitude];
-        setUserLocation(pos);
-        setMapCenter(pos);
-        setMapZoom(14);
-        setLocationStatus('GPS Active');
-      },
-      () => setLocationStatus('Permission Denied')
-    );
-  };
-
-  const resetSearchState = () => {
+  const resetSearchState = useCallback(() => {
     setHasSearched(false);
     setPlaces([]);
-    setActiveMarker(null);
-    setRouteGeometry(null);
-    setRouteInfo(null);
-  };
+    setViewingSaved(false);
+    setApiError(null);
+  }, []);
 
   const fetchPlaces = async () => {
     setIsSearching(true);
     resetSearchState();
     setHasSearched(true);
+    setApiError(null);
 
     const origin = userLocation || [CITIES[selectedCity].lat, CITIES[selectedCity].lng];
     setMapCenter(origin);
@@ -186,13 +183,14 @@ export default function MainPage({
       'https://overpass.kumi.systems/api/interpreter'
     ];
 
+    let success = false;
     for (const endpoint of apiEndpoints) {
       try {
         const response = await fetch(`${endpoint}?data=${encodeURIComponent(overpassQuery)}`);
         if (!response.ok) continue;
 
         const data = await response.json();
-        if (data && data.elements && data.elements.length > 0) {
+        if (data?.elements?.length > 0) {
           realPlaces = data.elements.map(el => ({
             id: `osm_${el.id}`,
             name: el.tags?.name || `Local ${activeCategory.label.slice(0, -1)}`,
@@ -200,58 +198,45 @@ export default function MainPage({
             lat: el.lat,
             lng: el.lon
           }));
+          success = true;
           break;
         }
       } catch (err) {
-        console.warn(`Primary Overpass mirror offline, trying alternative endpoint...`, err);
+        console.warn(`Overpass mirror offline: ${endpoint}`, err);
       }
     }
 
-    let finalResults = [...adminPlaces, ...realPlaces];
-
-    if (finalResults.length === 0) {
-      finalResults = [
-        { 
-          id: 'fallback_1', 
-          name: `Central ${selectedCity} ${activeCategory.label}`, 
-          address: `${selectedCity} Main Boulevard`, 
-          lat: origin[0] + 0.008, 
-          lng: origin[1] + 0.008 
-        },
-        { 
-          id: 'fallback_2', 
-          name: `Metro ${activeCategory.label.slice(0, -1)} Hub`, 
-          address: `${selectedCity} Downtown Sector`, 
-          lat: origin[0] - 0.009, 
-          lng: origin[1] + 0.012 
-        },
-        { 
-          id: 'fallback_3', 
-          name: `Express ${activeCategory.label.slice(0, -1)} Station`, 
-          address: `${selectedCity} Ring Road`, 
-          lat: origin[0] + 0.015, 
-          lng: origin[1] - 0.005 
-        }
-      ];
+    if (!success && realPlaces.length === 0) {
+      setApiError("Live data temporarily unavailable. Showing cached fallbacks.");
     }
 
+    let finalResults = [...adminPlaces, ...realPlaces];
+    if (finalResults.length === 0) {
+      finalResults = [
+        { id: 'fallback_1', name: `Central ${selectedCity} ${activeCategory.label}`, address: `${selectedCity} Main Boulevard`, lat: origin[0] + 0.008, lng: origin[1] + 0.008 },
+        { id: 'fallback_2', name: `Metro ${activeCategory.label.slice(0, -1)} Hub`, address: `${selectedCity} Downtown Sector`, lat: origin[0] - 0.009, lng: origin[1] + 0.012 },
+      ];
+    }
     setPlaces(finalResults);
     setIsSearching(false);
   };
 
-  const handleSelectPlace = (place) => {
+  const handleSelectPlace = useCallback((place) => {
     setSelectedPlaceForTransit(place);
+    setStopSpend({ accommodation: 0, foodAndActivities: 0 }); // Reset inputs for new modal
     setShowTransitModal(true);
-  };
+  }, []);
 
   const handleConfirmTransitRoute = async () => {
     if (!selectedPlaceForTransit) return;
     const place = selectedPlaceForTransit;
-    setActiveMarker(place);
     setShowTransitModal(false);
 
-    const origin = userLocation || [CITIES[selectedCity].lat, CITIES[selectedCity].lng];
+    // Determine the origin of this specific segment
+    const lastStop = itinerary.length > 0 ? itinerary[itinerary.length - 1].place : null;
+    const origin = lastStop ? [lastStop.lat, lastStop.lng] : (userLocation || [CITIES[selectedCity].lat, CITIES[selectedCity].lng]);
     const destination = [place.lat, place.lng];
+    
     setMapCenter(destination);
     setMapZoom(15);
 
@@ -262,43 +247,46 @@ export default function MainPage({
 
       if (data.routes?.[0]) {
         const route = data.routes[0];
-        setRouteGeometry(route.geometry.coordinates.map(c => [c[1], c[0]]));
-
+        const routeGeometry = route.geometry.coordinates.map(c => [c[1], c[0]]);
         const distKm = (route.distance / 1000).toFixed(1);
         const durationMins = Math.round(route.duration / 60);
         
-        let transitCost = 0;
-        let transitLabel = '';
+        let transitCost = 0, transitLabel = '', extraStats = null; 
 
         if (vehicleType === 'bike') {
-          const liters = distKm / (fuelEfficiency || 35);
-          transitCost = Math.round(liters * fuelPrice);
+          transitCost = Math.round((distKm / (fuelEfficiency || 35)) * fuelPrice);
           transitLabel = 'Personal Motorcycle Fuel';
         } else if (vehicleType === 'car') {
-          const liters = distKm / (fuelEfficiency || 12);
-          transitCost = Math.round(liters * fuelPrice);
+          transitCost = Math.round((distKm / (fuelEfficiency || 12)) * fuelPrice);
           transitLabel = 'Personal Car Fuel';
+        } else if (vehicleType === 'running') {
+          transitLabel = 'Running / Walking Route';
+          extraStats = `~${Math.round(distKm * 65)} kcal | ${(6.0 * distKm).toFixed(0)} min run time`;
         } else if (vehicleType === 'cycle') {
-          transitCost = 0;
           transitLabel = 'Bicycle (Zero Fuel)';
         } else if (vehicleType === 'ride_hailing') {
-          const baseRate = rideService === 'pathao' ? 60 : 70;
-          const perKmRate = rideService === 'pathao' ? 35 : 45;
-          transitCost = Math.round(baseRate + (distKm * perKmRate));
-          transitLabel = `${rideService === 'pathao' ? 'Pathao Ride' : 'InDrive Ride'}`;
+          transitCost = Math.round((rideService === 'pathao' ? 60 : 70) + (distKm * (rideService === 'pathao' ? 35 : 45)));
+          transitLabel = rideService === 'pathao' ? 'Pathao Ride' : 'InDrive Ride';
         }
 
-        setRouteInfo({
-          distance: `${distKm} km`,
-          duration: `${durationMins} min`,
-          travelMode: transitLabel,
-          transitCost: transitCost,
-          balance: budget - transitCost
-        });
+        setItinerary(prev => [...prev, {
+          id: `stop_${Date.now()}`,
+          place: place,
+          geometry: routeGeometry,
+          spend: { ...stopSpend },
+          info: {
+            distance: `${distKm} km`, duration: `${durationMins} min`,
+            travelMode: transitLabel, transitCost, extraStats
+          }
+        }]);
       }
     } catch (err) {
       console.error('OSRM Route Error:', err);
     }
+  };
+
+  const removeItineraryStop = (index) => {
+    setItinerary(prev => prev.filter((_, i) => i !== index));
   };
 
   return (
@@ -313,23 +301,32 @@ export default function MainPage({
         <div className="header-meta">
           <button className="nav-ghost-btn" onClick={onBackToLanding}>Home</button>
           
-          {currentUser ? (
-            <div className="admin-status-pill" style={{ background: '#f1f5f9', borderColor: '#cbd5e1', color: '#334155' }}>
-              <span>👤 {currentUser.name || currentUser.email || 'User'}</span>
-              <button className="inline-exit-btn" onClick={onLogout}>Log Out</button>
-            </div>
-          ) : (
-            <button className="nav-ghost-btn" onClick={onOpenAuthModal}>Sign In / Up</button>
+          {currentUser && userRole !== 'admin' && (
+            <button 
+              className={`nav-ghost-btn ${viewingSaved ? 'active' : ''}`} 
+              onClick={() => { setViewingSaved(!viewingSaved); setHasSearched(true); }}
+              style={{ fontWeight: viewingSaved ? 'bold' : 'normal', color: viewingSaved ? '#2563eb' : 'inherit' }}
+            >
+              ★ Saved ({savedPlaces.length})
+            </button>
           )}
 
           {userRole === 'admin' ? (
             <div className="admin-status-pill">
               <span className="pulsing-dot"></span>
               <span>Admin Mode</span>
-              <button className="inline-exit-btn" onClick={handleExitAdmin}>Exit</button>
+              <button className="inline-exit-btn" onClick={() => setUserRole('user')}>Exit</button>
+            </div>
+          ) : currentUser ? (
+            <div className="admin-status-pill" style={{ background: '#f1f5f9', borderColor: '#cbd5e1', color: '#334155' }}>
+              <span>👤 {currentUser.name || currentUser.email || 'User'}</span>
+              <button className="inline-exit-btn" onClick={onLogout}>Log Out</button>
             </div>
           ) : (
-            <button className="admin-access-btn" onClick={onOpenAdminModal}>🛡️ Admin</button>
+            <>
+              <button className="nav-ghost-btn" onClick={onOpenAuthModal}>Sign In / Up</button>
+              <button className="admin-access-btn" onClick={onOpenAdminModal}>🛡️ Admin</button>
+            </>
           )}
         </div>
       </header>
@@ -337,235 +334,291 @@ export default function MainPage({
       <main className="main-content">
         <aside className="sidebar">
           <div className="sidebar-scroll-content">
+            
             <div className="sidebar-title-block">
               <h2>{userRole === 'admin' ? 'Admin Control Panel' : 'Route Planner'}</h2>
-              <p>Select location categories &amp; compute budget-optimized trips</p>
+              <p>Configure your entire trip budget and select destinations</p>
             </div>
 
-            {userRole === 'admin' && (
-              <div className="admin-control-cluster">
-                <span className="micro-label">Add Custom Location</span>
-                <form onSubmit={handleAddCustomPlace} className="admin-stack">
-                  <input type="text" placeholder="Location Name" className="editorial-input" value={newPlaceName} onChange={e => setNewPlaceName(e.target.value)} />
-                  <input type="text" placeholder="Address / Area" className="editorial-input" value={newPlaceAddr} onChange={e => setNewPlaceAddr(e.target.value)} />
-                  <button type="submit" className="admin-action-btn">Add Location</button>
-                </form>
-                {customPlaces.length > 0 && (
-                  <div className="admin-records-list">
-                    {customPlaces.map(cp => (
-                      <div key={cp.id} className="record-row">
-                        <span>{cp.name}</span>
-                        <button type="button" onClick={() => handleDeleteCustomPlace(cp.id)}>Delete</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            <div style={{ marginBottom: '20px' }}>
+              <WeatherWidget 
+                latitude={CITIES[selectedCity].lat} 
+                longitude={CITIES[selectedCity].lng} 
+                locationName={CITIES[selectedCity].name} 
+              />
+            </div>
 
             <div className="control-card">
-              <label>1. Starting Location</label>
+              <label style={{fontWeight: 'bold', marginBottom: '15px', display: 'block', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px'}}>
+                1. Allocate Trip Capital (NPR)
+              </label>
+              
+              {['transport', 'accommodation', 'foodAndActivities'].map(cat => (
+                <div style={{marginBottom: '12px'}} key={cat}>
+                  <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <span className="micro-label">{cat.charAt(0).toUpperCase() + cat.slice(1).replace(/([A-Z])/g, ' $1')}</span>
+                    <span style={{fontSize: '0.85rem', fontWeight: 'bold'}}>Rs. {budgets[cat].toLocaleString()}</span>
+                  </div>
+                  <input type="range" className="editorial-slider" 
+                    min={cat === 'transport' ? "500" : "1000"} 
+                    max={cat === 'accommodation' ? "30000" : (cat === 'transport' ? "10000" : "20000")} 
+                    step="500" value={budgets[cat]} 
+                    onChange={(e) => setBudgets(prev => ({ ...prev, [cat]: Number(e.target.value) }))} 
+                  />
+                </div>
+              ))}
+
+              <div className="budget-top-row" style={{background: '#f8fafc', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1'}}>
+                <strong style={{color: '#334155'}}>Total Trip Budget:</strong>
+                <span className="budget-numeric" style={{color: '#059669'}}>Rs. {totalBudget.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="control-card">
+              <label>2. Starting Location</label>
               <div className="origin-row">
-                <button className="gps-sync-btn" onClick={handleShareLocation}>📍 {locationStatus}</button>
-                <select value={selectedCity} onChange={handleCityChange} className="editorial-select">
+                <button className="gps-sync-btn" onClick={() => {
+                  if (!navigator.geolocation) return alert('Geolocation not supported.');
+                  setLocationStatus('Locating...');
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                      const coords = [pos.coords.latitude, pos.coords.longitude];
+                      setUserLocation(coords); setMapCenter(coords); setMapZoom(14); setLocationStatus('GPS Active');
+                    },
+                    () => setLocationStatus('Permission Denied')
+                  );
+                }}>📍 {locationStatus}</button>
+                <select value={selectedCity} onChange={(e) => {
+                  setSelectedCity(e.target.value); setUserLocation(null); setLocationStatus('Use Current GPS');
+                  setMapCenter([CITIES[e.target.value].lat, CITIES[e.target.value].lng]); setMapZoom(13); resetSearchState(); setItinerary([]);
+                }} className="editorial-select">
                   {Object.keys(CITIES).map(city => <option key={city} value={city}>{CITIES[city].name}</option>)}
                 </select>
               </div>
             </div>
 
-            <div className="control-card">
-              <label>2. Select Category</label>
-              <div className="taxonomy-grid">
-                {CATEGORIES.map(cat => (
-                  <div key={cat.id} className={`taxonomy-chip ${activeCategory.id === cat.id ? 'active' : ''}`} onClick={() => { setActiveCategory(cat); resetSearchState(); }}>
-                    <span>{cat.icon}</span>
-                    <span>{cat.label}</span>
-                  </div>
-                ))}
+            {!viewingSaved && (
+              <div className="control-card">
+                <label>3. Select Category</label>
+                <div className="taxonomy-grid">
+                  {CATEGORIES.map(cat => (
+                    <div key={cat.id} className={`taxonomy-chip ${activeCategory.id === cat.id ? 'active' : ''}`} 
+                      onClick={() => { setActiveCategory(cat); resetSearchState(); }}>
+                      <span>{cat.icon}</span><span>{cat.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            <div style={{ marginBottom: '20px' }}>
+               <PackingList />
             </div>
 
-            <div className="control-card">
-              <div className="budget-top-row">
-                <label>3. Total Budget (NPR)</label>
-                <span className="budget-numeric">Rs. {budget.toLocaleString()}</span>
+            {itinerary.length > 0 && (
+              <div className="control-card" style={{ background: '#f8fafc', borderColor: '#93c5fd' }}>
+                <label style={{ color: '#1e40af' }}>Your Itinerary ({itinerary.length} Stops)</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                  {itinerary.map((stop, i) => (
+                    <div key={stop.id} style={{ background: '#fff', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <span>{i + 1}. {stop.place.name}</span>
+                        <button onClick={() => removeItineraryStop(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                      </div>
+                      <div style={{ color: '#64748b', marginTop: '4px' }}>
+                        Drive: {stop.info.transitCost} Rs | Stay: {stop.spend.accommodation} Rs | Food: {stop.spend.foodAndActivities} Rs
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button 
+                  className="admin-submit-btn" 
+                  style={{ width: '100%', marginTop: '15px', background: '#10b981', color: 'white' }} 
+                  onClick={() => setShowFinalizeModal(true)}
+                >
+                  Finalize Journey & Budget ➔
+                </button>
               </div>
-              <input type="range" className="editorial-slider" min="500" max="20000" step="500" value={budget} onChange={(e) => setBudget(Number(e.target.value))} />
-            </div>
+            )}
 
             {hasSearched && (
               <div className="places-stack">
-                <span className="micro-label">Results ({places.length}) - Click to configure transport</span>
-                {places.map((place) => (
-                  <div key={place.id} className={`place-node-card ${activeMarker?.id === place.id ? 'active-node' : ''}`} onClick={() => handleSelectPlace(place)}>
-                    {place.isCustom && <span className="custom-tag">Custom</span>}
-                    <div className="node-title">{place.name}</div>
-                    <div className="node-address">{place.address}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {routeInfo && activeMarker && (
-              <div className="matrix-analysis-panel">
-                <span className="micro-label">Active Transit Summary</span>
-                <div className="matrix-title">{activeMarker.name}</div>
-                <div className="matrix-mode-badge" style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Mode: {routeInfo.travelMode}</div>
-                <div className="matrix-metrics-row">
-                  <div><span>Distance</span><strong>{routeInfo.distance}</strong></div>
-                  <div><span>Duration</span><strong>{routeInfo.duration}</strong></div>
-                  <div><span>Cost</span><strong>Rs. {routeInfo.transitCost.toLocaleString()}</strong></div>
-                </div>
-                <div className="fiscal-balance-row">
-                  <span>Remaining Budget:</span>
-                  <strong className={routeInfo.balance >= 0 ? 'text-positive' : 'text-negative'}>
-                    Rs. {routeInfo.balance.toLocaleString()}
-                  </strong>
-                </div>
+                <span className="micro-label">
+                  {viewingSaved ? `Your Saved Places (${savedPlaces.length})` : `Results (${places.length}) - Add to Itinerary`}
+                </span>
+                
+                {apiError && !viewingSaved && (
+                   <div style={{ padding: '10px', color: '#b91c1c', background: '#fef2f2', borderRadius: '6px', fontSize: '0.85rem', marginBottom: '10px' }}>
+                      ⚠️ {apiError}
+                   </div>
+                )}
 
-                <div className="ride-hailing-actions">
-                  <a href="https://pathao.com" target="_blank" rel="noopener noreferrer" className="ride-btn pathao-btn">
-                    🟡 Pathao
-                  </a>
-                  <a href="https://indrive.com" target="_blank" rel="noopener noreferrer" className="ride-btn indrive-btn">
-                    🟢 InDrive
-                  </a>
-                </div>
-
-                <button className="ai-trigger-sub-btn" onClick={() => setShowAiFunModal(true)}>
-                  ✨ Explore Nearby Spots
-                </button>
+                {listToRender.map((place) => {
+                  const isSaved = savedPlaces.some(p => p.id === place.id);
+                  return (
+                    <div key={place.id} className="place-node-card" onClick={() => handleSelectPlace(place)} style={{ position: 'relative' }}>
+                      {place.isCustom && <span className="custom-tag">Custom</span>}
+                      <button className="save-star-btn" onClick={(e) => handleToggleSavePlace(place, e)}
+                        style={{ position: 'absolute', right: '12px', top: '12px', background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: isSaved ? '#fbbf24' : '#cbd5e1' }}
+                        title={isSaved ? "Remove from saved" : "Save place"}>
+                        {isSaved ? '★' : '☆'}
+                      </button>
+                      <div className="node-title" style={{ paddingRight: '25px' }}>{place.name}</div>
+                      <div className="node-address">{place.address}</div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
           <div className="sidebar-footer">
-            <button className="execute-scan-btn" onClick={fetchPlaces} disabled={isSearching}>
-              {isSearching ? 'Searching...' : `Search ${activeCategory.label}`}
-            </button>
+            {!viewingSaved && (
+              <button className="execute-scan-btn" onClick={fetchPlaces} disabled={isSearching}>
+                {isSearching ? 'Searching...' : `Search ${activeCategory.label}`}
+              </button>
+            )}
           </div>
         </aside>
 
         <section className="map-wrapper">
           <MapContainer center={mapCenter} zoom={mapZoom} zoomControl={false}>
-            <MapViewController center={mapCenter} zoom={mapZoom} activePlace={activeMarker} />
+            <MapViewController center={mapCenter} zoom={mapZoom} />
             <TileLayer attribution='&copy; OpenStreetMap' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Marker position={userLocation || [CITIES[selectedCity].lat, CITIES[selectedCity].lng]} icon={originIcon} />
-            {places.map(place => (
-              <Marker key={place.id} position={[place.lat, place.lng]} eventHandlers={{ click: () => handleSelectPlace(place) }}>
+            
+            {listToRender.map(place => (
+              <Marker key={`search_${place.id}`} position={[place.lat, place.lng]} eventHandlers={{ click: () => handleSelectPlace(place) }}>
                 <Popup>
                   <div className="map-popup-card">
                     <strong>{place.name}</strong>
                     <span>{place.address}</span>
-                    <button className="popup-route-trigger" onClick={() => handleSelectPlace(place)}>Select Transit &amp; Budget</button>
+                    <button className="popup-route-trigger" onClick={() => handleSelectPlace(place)}>Add to Itinerary</button>
                   </div>
                 </Popup>
               </Marker>
             ))}
-            {routeGeometry && <Polyline positions={routeGeometry} color="#2563eb" weight={5} opacity={0.85} />}
+
+            {itinerary.map((stop, index) => (
+              <React.Fragment key={stop.id}>
+                <Marker position={[stop.place.lat, stop.place.lng]}>
+                  <Popup>
+                    <strong>Stop {index + 1}: {stop.place.name}</strong><br/>
+                    {stop.info.distance} • {stop.info.duration}
+                  </Popup>
+                </Marker>
+                {stop.geometry && <Polyline color="#2563eb" opacity={0.85} positions={stop.geometry} weight={5} />}
+              </React.Fragment>
+            ))}
           </MapContainer>
         </section>
       </main>
 
-      {/* Transport & Budget Modal */}
       {showTransitModal && (
         <div className="modal-backdrop" onClick={() => setShowTransitModal(false)}>
           <div className="clean-modal-card" onClick={e => e.stopPropagation()}>
             <div className="clean-modal-header">
               <div>
-                <span className="clean-modal-tag">DESTINATION SELECTED</span>
+                <span className="clean-modal-tag">ADD TO ITINERARY</span>
                 <h3>{selectedPlaceForTransit?.name}</h3>
                 <p className="clean-modal-sub">{selectedPlaceForTransit?.address}</p>
               </div>
               <button className="close-x-btn" onClick={() => setShowTransitModal(false)}>&times;</button>
             </div>
-
+            
             <div className="clean-modal-body">
-              <label className="micro-label">Choose Transportation / Ride Hailing Service</label>
-              <div className="clean-tiers-grid">
-                <div className={`clean-tier-card ${vehicleType === 'bike' ? 'active-tier' : ''}`} onClick={() => handleVehicleChange('bike')}>
-                  <span className="tier-icon">🏍️</span>
-                  <strong>Motorbike</strong>
-                  <span>Fuel Calculation</span>
-                </div>
-                <div className={`clean-tier-card ${vehicleType === 'car' ? 'active-tier' : ''}`} onClick={() => handleVehicleChange('car')}>
-                  <span className="tier-icon">🚗</span>
-                  <strong>Car</strong>
-                  <span>Standard Fuel</span>
-                </div>
-                <div className={`clean-tier-card ${vehicleType === 'ride_hailing' ? 'active-tier' : ''}`} onClick={() => handleVehicleChange('ride_hailing')}>
-                  <span className="tier-icon">📱</span>
-                  <strong>Ride App</strong>
-                  <span>Pathao / InDrive</span>
-                </div>
+              <label className="micro-label">1. Choose Route Transport</label>
+              <div className="clean-tiers-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)', marginBottom: '15px' }}>
+                {['bike', 'car', 'running', 'ride_hailing'].map(type => (
+                  <div key={type} className={`clean-tier-card ${vehicleType === type ? 'active-tier' : ''}`} 
+                    onClick={() => {
+                      setVehicleType(type);
+                      if (type === 'bike') setFuelEfficiency(35);
+                      else if (type === 'car') setFuelEfficiency(12);
+                      else setFuelEfficiency(0);
+                    }}>
+                    <span className="tier-icon">{type === 'bike' ? '🏍️' : type === 'car' ? '🚗' : type === 'running' ? '👟' : '📱'}</span>
+                    <strong>{type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</strong>
+                  </div>
+                ))}
               </div>
 
-              {vehicleType === 'ride_hailing' && (
-                <div className="ride-hailing-actions" style={{ marginTop: '0.75rem' }}>
-                  <button type="button" className={`ride-btn pathao-btn`} style={{ opacity: rideService === 'pathao' ? 1 : 0.6 }} onClick={() => setRideService('pathao')}>🟡 Pathao</button>
-                  <button type="button" className={`ride-btn indrive-btn`} style={{ opacity: rideService === 'indrive' ? 1 : 0.6 }} onClick={() => setRideService('indrive')}>🟢 InDrive</button>
-                </div>
-              )}
-
-              {(vehicleType === 'bike' || vehicleType === 'car') && (
-                <div className="clean-metrics-row">
-                  <div>
-                    <label className="micro-label">Efficiency (km/L)</label>
-                    <input type="number" className="editorial-input" value={fuelEfficiency} onChange={e => setFuelEfficiency(Number(e.target.value) || 1)} />
-                  </div>
-                  <div>
-                    <label className="micro-label">Fuel Price (NPR/L)</label>
-                    <input type="number" className="editorial-input" value={fuelPrice} onChange={e => setFuelPrice(Number(e.target.value) || 170)} />
-                  </div>
-                </div>
-              )}
-
-              <div className="clean-summary-box">
+              <label className="micro-label">2. Estimated Spending at Stop (NPR)</label>
+              <div className="clean-metrics-row" style={{ marginTop: '5px' }}>
                 <div>
-                  <span className="micro-label">Allocated Capital</span>
-                  <h2>Rs. {budget.toLocaleString()}</h2>
+                  <label className="micro-label" style={{ color: '#64748b' }}>Accommodation</label>
+                  <input type="number" className="editorial-input" value={stopSpend.accommodation} 
+                    onChange={e => setStopSpend({...stopSpend, accommodation: Number(e.target.value) || 0})} placeholder="e.g. 1500" />
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="micro-label">Mode</span>
-                  <strong style={{ display: 'block', color: '#2563eb', fontSize: '0.9rem' }}>{vehicleType.toUpperCase()}</strong>
+                <div>
+                  <label className="micro-label" style={{ color: '#64748b' }}>Food / Entry Fees</label>
+                  <input type="number" className="editorial-input" value={stopSpend.foodAndActivities} 
+                    onChange={e => setStopSpend({...stopSpend, foodAndActivities: Number(e.target.value) || 0})} placeholder="e.g. 500" />
                 </div>
               </div>
             </div>
 
             <div className="clean-modal-footer">
               <button className="nav-ghost-btn" onClick={() => setShowTransitModal(false)}>Cancel</button>
-              <button className="admin-submit-btn" onClick={handleConfirmTransitRoute}>Calculate Route &amp; Budget ➔</button>
+              <button className="admin-submit-btn" onClick={handleConfirmTransitRoute}>Add to Journey ➔</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Spot Discovery Modal */}
-      {showAiFunModal && (
-        <div className="modal-backdrop" onClick={() => setShowAiFunModal(false)}>
-          <div className="ai-fun-modal-container" onClick={e => e.stopPropagation()}>
-            <div className="ai-modal-header">
-              <div className="ai-badge-head">
-                <span className="ai-sparkle-pill">Travel Recommendations</span>
-                <h3>Fun Activities Near {activeMarker?.name || selectedCity}</h3>
+      {showFinalizeModal && (
+        <div className="modal-backdrop" onClick={() => setShowFinalizeModal(false)}>
+          <div className="clean-modal-card" style={{ maxWidth: '600px' }} onClick={e => e.stopPropagation()}>
+            <div className="clean-modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
+              <div>
+                <span className="clean-modal-tag" style={{ background: '#10b981', color: 'white' }}>CHECKOUT SUMMARY</span>
+                <h3 style={{ fontSize: '1.5rem', marginTop: '5px' }}>Journey Financial Report</h3>
               </div>
-              <button className="close-x-btn" onClick={() => setShowAiFunModal(false)}>&times;</button>
+              <button className="close-x-btn" onClick={() => setShowFinalizeModal(false)}>&times;</button>
             </div>
-            <div className="ai-modal-body">
-              <p className="ai-subtitle-text">Curated mini-adventures near your destination:</p>
-              <div className="ai-activities-grid">
-                <div className="ai-activity-card">
-                  <span className="act-emoji">📸</span>
-                  <div className="act-content">
-                    <h4>Golden Hour Photography Walk</h4>
-                    <p>Explore surrounding streets within a 500m radius.</p>
-                    <span className="act-meta">⏱️ 30-45 mins • Free</span>
-                  </div>
+            
+            <div className="clean-modal-body" style={{ padding: '20px' }}>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  <span className="micro-label">Total Allocated Capital</span>
+                  <h2 style={{ color: '#1e293b', margin: '5px 0' }}>Rs. {totalBudget.toLocaleString()}</h2>
+                </div>
+                <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                  <span className="micro-label">Total Estimated Cost</span>
+                  <h2 style={{ color: '#b91c1c', margin: '5px 0' }}>Rs. {(totalSpent.transport + totalSpent.accommodation + totalSpent.foodAndActivities).toLocaleString()}</h2>
                 </div>
               </div>
+
+              <label className="micro-label" style={{ marginBottom: '10px', display: 'block' }}>Category Breakdown</label>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {[
+                  { label: 'Transport', budget: budgets.transport, spent: totalSpent.transport },
+                  { label: 'Accommodation', budget: budgets.accommodation, spent: totalSpent.accommodation },
+                  { label: 'Food & Activities', budget: budgets.foodAndActivities, spent: totalSpent.foodAndActivities }
+                ].map(cat => {
+                  const balance = cat.budget - cat.spent;
+                  return (
+                    <div key={cat.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                      <strong style={{ width: '120px' }}>{cat.label}</strong>
+                      <div style={{ textAlign: 'center', fontSize: '0.85rem' }}>
+                        <span style={{ color: '#64748b' }}>Budget: </span>Rs. {cat.budget}<br/>
+                        <span style={{ color: '#b91c1c' }}>Spent: </span>Rs. {cat.spent}
+                      </div>
+                      <div style={{ width: '100px', textAlign: 'right', fontWeight: 'bold', color: balance >= 0 ? '#10b981' : '#ef4444' }}>
+                        {balance >= 0 ? 'Left: ' : 'Over: '} Rs. {Math.abs(balance).toLocaleString()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div className="ai-modal-footer">
-              <button className="admin-submit-btn" onClick={() => setShowAiFunModal(false)}>Awesome, Let's Go!</button>
+
+            <div className="clean-modal-footer" style={{ justifyContent: 'center', paddingTop: '20px' }}>
+              <button className="admin-submit-btn" style={{ width: '100%', fontSize: '1.1rem', padding: '12px' }} onClick={() => setShowFinalizeModal(false)}>
+                Confirm & Close Itinerary
+              </button>
             </div>
           </div>
         </div>
