@@ -5,8 +5,6 @@ import Signin from './Signin.jsx';
 import Signup from './Signup.jsx';
 import AdminLoginModal from './AdminLoginModal.jsx';
 
-//test for update//
-
 export default function App() {
   const [currentView, setCurrentView] = useState('landing'); 
   const [userRole, setUserRole] = useState('user');
